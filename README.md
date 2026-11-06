@@ -46,7 +46,7 @@ Register images for a deck in a new `src/art-<deck>.js`:
 
 ```js
 CardEngine.registerAssets('deck-id', {
-  blend: 'multiply',              // 'multiply' for art on light paper; 'normal' for pre-blended dark art
+  blend: 'multiply',              // 'multiply' for art on light paper (emblems as transparent PNGs); 'normal' for pre-blended dark art
   faces: { K: { red: 'data:…', black: 'data:…' }, Q: {…}, J: {…} },
   suits: { S: 'data:…', H: 'data:…', C: 'data:…', D: 'data:…' }
 });

@@ -178,9 +178,11 @@
       (s.card.extra || '') + ';color:' + ink + '">' + inner + '</div></div>';
   }
 
-  function corner(s, card, glyph, flipped) {
-    var f = s.fonts;
-    return '<div style="position:absolute;' + (flipped ? 'bottom' : 'top') + ':' + s.corner.y + 'px;' + (flipped ? 'right' : 'left') + ':' + s.corner.x + 'px;' +
+  // On picture cards with full-bleed art the index sits on a small chip of card colour so it stays readable.
+  function corner(s, card, glyph, flipped, chip) {
+    var f = s.fonts, dx = chip ? 3 : 0;
+    return '<div style="position:absolute;' + (flipped ? 'bottom' : 'top') + ':' + (s.corner.y - dx) + 'px;' + (flipped ? 'right' : 'left') + ':' + (s.corner.x - dx) + 'px;' +
+      (chip ? 'background:' + s.card.bg + ';padding:' + dx + 'px;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,0.25);' : '') +
       'display:flex;flex-direction:column;align-items:center;gap:' + (s.corner.gap || 0) + 'px;line-height:1;font-family:' + f.rank + ';' +
       (f.rankWeight ? 'font-weight:' + f.rankWeight + ';' : '') + (flipped ? 'transform:rotate(180deg);' : '') + '">' +
       '<span style="font-size:' + s.corner.rankSize + 'px">' + card.rank + '</span>' +
@@ -231,7 +233,8 @@
     else if (s.faces && s.faces[card.rank]) body = s.faces[card.rank](c);
     else body = '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:' + s.fonts.rank + ';font-size:96px">' + card.rank + '</div>';
     var decor = s.card.decor ? s.card.decor(c) : '';
-    return cardFrame(s, width, decor + body + corner(s, card, c.glyph, false) + corner(s, card, c.glyph, true), c.ink);
+    var chip = v > 10 && !!faceArt(s, card.rank, card.suit);
+    return cardFrame(s, width, decor + body + corner(s, card, c.glyph, false, chip) + corner(s, card, c.glyph, true, chip), c.ink);
   }
 
   function renderBack(styleId, opts) {
