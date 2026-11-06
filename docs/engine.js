@@ -731,7 +731,7 @@
     pip: 30, pipLarge: 38,
     suits: {
       red: { ink: '#C81E15', cloth: '#E3261C', sash: '#E3261C', disc: '#E3261C', wash: '#F2A39E' },
-      black: { ink: '#111111', cloth: '#111111', sash: '#C9C4B8', disc: '#1B3A8F', wash: '#8FA3DC' }
+      black: { ink: '#14234A', cloth: '#111111', sash: '#C9C4B8', disc: '#1B3A8F', wash: '#8FA3DC' }
     },
     faces: {
       K: function (c) {
