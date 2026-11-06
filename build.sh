@@ -13,6 +13,7 @@ COMMON='<script src="engine.js"></script>
 <script src="art-void-ink.js"></script>
 <script src="art-neon-riot.js"></script>
 <script src="art-hellfire-pulp.js"></script>
+<script src="art-signal-orange.js"></script>
 <script src="levels.js"></script>
 <script src="app.js"></script>'
 # Level pack: tools/levels.json -> src/levels.js
