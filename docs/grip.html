@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Devil's Grip</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one column table. Header, status strip, 3 x 8 grid with row chains on the left, stock and waste below. */
+:root {
+  --table: #0B0B0B;
+  --surface: #161615;
+  --line: #2E2E2B;
+  --text: #F2F0EA;
+  --muted: #A9A7A0;
+  --accent: #F2F0EA;
+  --accent-text: #0B0B0B;
+  --warn: #8F8D87;
+  --display: 'Bebas Neue', Oswald, Impact, 'Arial Narrow', sans-serif;
+  --ui: 'Bebas Neue', Oswald, Impact, 'Arial Narrow', sans-serif;
+  --body: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  --display-size: clamp(42px, 7vw, 68px);
+  --ui-size: 20px;
+  --body-size: 14px;
+  color-scheme: dark;
+}
+html, body { background: var(--table); color: var(--text); transition: background-color 200ms ease; }
+body { font-family: var(--body); font-size: var(--body-size); }
+.app {
+  max-width: 1640px; margin: 0 auto;
+  padding-block: 16px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 18px;
+}
+.top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 14px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: var(--display-size); line-height: 0.95; letter-spacing: 1px; margin: 0; text-wrap: balance; }
+.sub { margin: 8px 0 0; color: var(--muted); font-size: 12px; letter-spacing: 0.06em; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn {
+  min-height: 44px; padding: 0 16px; border-radius: 4px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  font-family: var(--ui); font-size: var(--ui-size); letter-spacing: 1px; cursor: pointer;
+}
+.deck-pick { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 4px 0 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
+.deck-pick span { font-size: 11px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+.deck-pick select {
+  min-height: 42px; border: 0; background: transparent; color: var(--text);
+  font-family: var(--ui); font-size: var(--ui-size); letter-spacing: 1px; cursor: pointer; padding-right: 6px;
+}
+.deck-pick select option { background: var(--surface); color: var(--text); }
+.deck-pick:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.btn.armed { border-color: var(--accent); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn:focus-visible, .pile:focus-visible, .stock:focus-visible, .waste-top:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.hud {
+  display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0;
+  font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums;
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding-block: 10px;
+}
+.hud b { color: var(--text); font-weight: 600; }
+
+.result {
+  border: 1px solid var(--line); background: var(--surface); padding: 18px 20px;
+  display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: center; justify-content: space-between;
+}
+.result h2 { font-family: var(--display); font-weight: 400; font-size: calc(var(--display-size) * 0.68); letter-spacing: 1px; margin: 0; line-height: 1; }
+.result p { margin: 4px 0 0; color: var(--muted); }
+.result .unlock, .result .unlock strong { color: var(--text); }
+.home-link { display: inline-block; margin-bottom: 6px; color: var(--muted); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; padding-block: 6px; }
+.home-link:hover { color: var(--text); }
+.home-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.board { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+.row { display: flex; align-items: flex-start; }
+.row-label { flex: none; display: flex; flex-direction: column; gap: 6px; padding-top: 2px; }
+.row-label .chain { font-family: var(--ui); font-size: calc(var(--ui-size) + 2px); letter-spacing: 1px; line-height: 1.1; }
+.row-label .count, .row-head { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.row-block { display: flex; flex-direction: column; gap: 6px; }
+.row-head { display: flex; justify-content: space-between; letter-spacing: 0.04em; }
+.row-head .chain { color: var(--text); font-family: var(--ui); font-size: var(--ui-size); letter-spacing: 1px; }
+.piles { display: flex; }
+
+.pile { position: relative; flex: none; padding: 0; border: 0; background: transparent; cursor: pointer; color: inherit; }
+.pile .slot {
+  position: absolute; left: 0; top: 0; width: 100%; box-sizing: border-box; border: 1px dashed var(--line);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--ui); font-size: var(--ui-size); letter-spacing: 1px; color: var(--muted);
+}
+.card-wrap { position: absolute; left: 0; transition: transform 120ms ease; }
+.pile.selected .card-wrap:last-child, .waste-top.selected { transform: translateY(-6px); }
+.pile.selected .card-wrap:last-child .ce-card, .waste-top.selected .ce-card { box-shadow: 0 0 0 2px var(--table), 0 0 0 4px var(--accent); }
+.pile.target::after {
+  content: ""; position: absolute; inset: -4px; border: 1px dashed var(--accent); border-radius: 8px; pointer-events: none;
+}
+.pile::before { content: ""; position: absolute; left: 3px; right: 3px; bottom: -9px; height: 2px; }
+.pile.done::before { background: var(--accent); }
+.pile.away::before { background: repeating-linear-gradient(90deg, var(--warn) 0 4px, transparent 4px 7px); }
+.pile.shake { animation: shake 0.32s ease; }
+@keyframes shake { 20% { transform: translateX(-4px); } 50% { transform: translateX(4px); } 80% { transform: translateX(-2px); } }
+
+/* Play area: stock and waste sit below the grid on tall screens and beside it on wide ones. */
+.play { display: flex; flex-direction: column; gap: 16px; }
+.play.side { flex-direction: row; align-items: flex-start; }
+.play.side .board { flex: 1 1 auto; min-width: 0; }
+.talon { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 24px; padding-top: 4px; }
+.talon-cards { display: flex; gap: 18px; align-items: flex-start; }
+.play.side .talon { flex: none; flex-direction: column; flex-wrap: nowrap; padding-top: 0; }
+.play.side .talon-cards { flex-direction: column; gap: 14px; }
+.play.side .msg { flex: none; width: 100%; }
+
+/* More menu: inline on wide screens, a drop-down on narrow ones. */
+.more { position: relative; }
+.more > summary { list-style: none; display: inline-flex; align-items: center; }
+.more > summary::-webkit-details-marker { display: none; }
+.more-panel {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 5;
+  display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+  padding: 10px; min-width: 220px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+.more.inline { order: -1; }
+.more.inline > summary { display: none; }
+.more.inline .more-panel {
+  position: static; flex-direction: row; flex-wrap: wrap; align-items: center;
+  padding: 0; min-width: 0; background: none; border: 0; box-shadow: none;
+}
+
+/* Short screens (opened foldable, laptop with browser bars): slimmer header so the grid gets the height. */
+@media (max-height: 860px) and (min-width: 600px) {
+  .app { gap: 12px; padding-block: 10px 40px; }
+  .top { align-items: center; }
+  h1 { font-size: calc(var(--display-size) * 0.72); }
+  .sub { margin-top: 4px; }
+  .hud { padding-block: 7px; }
+}
+
+@media (max-width: 599px) {
+  .app { gap: 12px; padding-block: 10px 40px; }
+  .row-block { gap: 2px; }
+  .row-head { font-size: 10px; }
+  .row-head .chain { font-size: calc(var(--ui-size) * 0.85); }
+  .top { align-items: center; }
+  h1 { font-size: calc(var(--display-size) * 0.62); }
+  .sub { display: none; }
+  .btn { padding: 0 12px; }
+  .hud { gap: 4px 14px; padding-block: 6px; font-size: 11px; }
+  .hud .x { display: none; }
+  .more-panel { left: auto; right: 0; }
+}
+.pile-col { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.pile-col .cap { font-size: 11px; color: var(--muted); letter-spacing: 0.05em; font-variant-numeric: tabular-nums; }
+.stock { position: relative; padding: 0; border: 0; background: transparent; cursor: pointer; color: var(--muted); }
+.stock .slot { box-sizing: border-box; border: 1px dashed var(--line); display: flex; align-items: center; justify-content: center; font-family: var(--ui); font-size: var(--ui-size); letter-spacing: 1px; text-align: center; padding: 4px; }
+.waste { position: relative; }
+.waste .card-wrap { top: 0; }
+.waste-top { position: absolute; top: 0; padding: 0; border: 0; background: transparent; cursor: pointer; transition: transform 120ms ease; }
+.msg { flex: 1 1 240px; min-width: 0; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; max-width: 60ch; }
+.msg strong { color: var(--text); font-weight: 600; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 11px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.legend i { display: inline-block; width: 22px; height: 2px; }
+.legend .solid { background: var(--accent); }
+.legend .dotted { background: repeating-linear-gradient(90deg, var(--warn) 0 4px, transparent 4px 7px); }
+.legend .dash { height: 12px; width: 16px; border: 1px dashed var(--accent); border-radius: 3px; }
+
+.rules { border-top: 1px solid var(--line); padding-top: 14px; color: var(--muted); }
+.rules summary { cursor: pointer; color: var(--text); font-family: var(--ui); font-size: calc(var(--ui-size) + 2px); letter-spacing: 1px; }
+.rules ul { margin: 12px 0 0; padding-left: 18px; max-width: 66ch; line-height: 1.65; display: flex; flex-direction: column; gap: 6px; }
+.rules b { color: var(--text); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card-wrap, .waste-top { transition: none; }
+  .pile.shake { animation: none; }
+}
+</style>
+
+<main class="app">
+  <header class="top">
+    <div>
+      <a class="home-link" href="index.html">‹ The Devil &amp; The Cosmonaut</a>
+      <h1>Devil's Grip</h1>
+      <p class="sub" id="sub">Two packs, aces out · 96 cards</p>
+    </div>
+    <div class="controls">
+      <button type="button" class="btn" id="btn-sort">Sort</button>
+      <button type="button" class="btn" id="btn-undo">Undo</button>
+      <button type="button" class="btn primary" id="btn-new">New deal</button>
+      <details class="more" id="more">
+        <summary class="btn">More</summary>
+        <div class="more-panel">
+          <label class="deck-pick" for="deck"><span>Deck</span><select id="deck"></select></label>
+          <button type="button" class="btn" id="btn-fill" aria-pressed="true">Auto-fill on</button>
+          <button type="button" class="btn" id="btn-hints" aria-pressed="false">Hints off</button>
+          <button type="button" class="btn" id="btn-end">End game</button>
+        </div>
+      </details>
+    </div>
+  </header>
+
+  <p class="hud" id="hud" aria-label="Game status"></p>
+
+  <section class="result" id="result" hidden aria-live="polite">
+    <div>
+      <h2 id="result-title"></h2>
+      <p id="result-text"></p>
+      <p class="unlock" id="result-unlock" hidden></p>
+    </div>
+    <button type="button" class="btn primary" id="btn-again">Deal again</button>
+  </section>
+
+  <div class="play below" id="play">
+    <section class="board" id="board" aria-label="Grid of 24 piles"></section>
+
+    <section class="talon" id="talon" aria-label="Stock and waste">
+      <div class="talon-cards">
+        <div class="pile-col">
+          <div id="stock-slot"></div>
+          <span class="cap" id="stock-cap"></span>
+        </div>
+        <div class="pile-col">
+          <div class="waste" id="waste"></div>
+          <span class="cap" id="waste-cap"></span>
+        </div>
+      </div>
+      <p class="msg" id="msg" aria-live="polite"></p>
+    </section>
+  </div>
+
+  <div class="legend" aria-hidden="true">
+    <span><i class="solid"></i>Finished pile in its own row</span>
+    <span><i class="dotted"></i>Pile that belongs in another row</span>
+    <span id="legend-hint" hidden><i class="dash"></i>Where the selected card can go</span>
+  </div>
+
+  <details class="rules" id="rules">
+    <summary>How to play</summary>
+    <ul>
+      <li>Two packs with the aces taken out make <b>96 cards</b>. Twenty-four are dealt face up in three rows of eight. The rest is the stock.</li>
+      <li>Every pile builds up <b>in steps of three, in one suit</b>. Top row: <b>2 · 5 · 8 · J</b>. Middle row: <b>3 · 6 · 9 · Q</b>. Bottom row: <b>4 · 7 · 10 · K</b>.</li>
+      <li>Tap a card, then tap a pile. If the card is the same suit and three higher, it builds on top. <b>Piles only build in their own row</b>, so an 8 can only be built in the top row.</li>
+      <li>If the card is three lower than a pile's bottom card, it <b>slides underneath</b> and the pile stays where it is. A whole pile can slide under, or move on top of, another pile the same way.</li>
+      <li>Tapping a pile where the card cannot build <b>swaps the two piles</b>. Swaps are how you move cards into their rows. A single card can swap anywhere, but <b>a stack of two or more cards always stays in its own row</b>.</li>
+      <li><b>Undo</b> takes back moves since your last deal or fill. Once a card is turned up from the stock it stays, just like with real cards.</li>
+      <li><b>Sort</b> tidies every row: finished piles move to the left and piles from other rows move to the right. It counts as one move and can be undone.</li>
+      <li><b>Hints</b> outlines every spot the selected card can go. It starts off.</li>
+      <li>Empty spaces fill <b>only from the stock</b>, never from the waste. That is the only way new 2s, 3s and 4s join the grid. If the stock is empty, turn the waste over first. With <b>Auto-fill on</b> they fill straight away. With it off, a space stays open so you can move piles into it first, and you tap the space when you want it filled. Turning auto-fill back on fills any open spaces.</li>
+      <li>Tap the stock to deal three cards to the waste. Only the top waste card can be played. When the stock runs out, tap it again to turn the waste over. There is no limit on redeals.</li>
+      <li>When you are stuck, end the game. Your score is the cards left in the stock and waste: 10 or fewer is good, 5 or fewer excellent, 2 or fewer brilliant. Getting all 96 home is rare.</li>
+    </ul>
+  </details>
+</main>
+<script src="engine.js"></script>
+<script src="art-void-ink.js"></script>
+<script src="art-neon-riot.js"></script>
+<script src="levels.js"></script>
+<script src="app.js"></script>
+<script src="grip.js"></script>

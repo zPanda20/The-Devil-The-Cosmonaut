@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Cosmonaut Sudoku</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: header, status strip, then either the level map (tiers of numbered levels) or the puzzle board with its controls. */
+:root {
+  --table: #0B0B0B;
+  --surface: #161615;
+  --line: #2E2E2B;
+  --text: #F2F0EA;
+  --muted: #A9A7A0;
+  --accent: #F2F0EA;
+  --accent-text: #0B0B0B;
+  --warn: #8F8D87;
+  --bad: #E5484D;
+  --display: 'Bebas Neue', Oswald, Impact, 'Arial Narrow', sans-serif;
+  --ui: 'Bebas Neue', Oswald, Impact, 'Arial Narrow', sans-serif;
+  --body: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  --display-size: clamp(42px, 7vw, 68px);
+  --ui-size: 20px;
+  --body-size: 14px;
+  color-scheme: dark;
+}
+html, body { background: var(--table); color: var(--text); transition: background-color 200ms ease; }
+body { font-family: var(--body); font-size: var(--body-size); }
+.app {
+  max-width: 1240px; margin: 0 auto;
+  padding-block: 16px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 16px;
+}
+.top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: var(--display-size); line-height: 0.95; letter-spacing: 1px; margin: 0; text-wrap: balance; }
+.sub { margin: 6px 0 0; color: var(--muted); font-size: 12px; letter-spacing: 0.06em; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn {
+  min-height: 44px; padding: 0 16px; border-radius: 4px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  font-family: var(--ui); font-size: var(--ui-size); letter-spacing: 1px; cursor: pointer;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn:focus-visible, .lvl:focus-visible, .cell:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.deck-pick { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 4px 0 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
+.deck-pick span { font-size: 11px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+.deck-pick select { min-height: 42px; border: 0; background: transparent; color: var(--text); font-family: var(--ui); font-size: var(--ui-size); letter-spacing: 1px; cursor: pointer; padding-right: 6px; }
+.deck-pick select option { background: var(--surface); color: var(--text); }
+.deck-pick:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.more { position: relative; }
+.more > summary { list-style: none; display: inline-flex; align-items: center; }
+.more > summary::-webkit-details-marker { display: none; }
+.more-panel {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 5;
+  display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+  padding: 10px; min-width: 220px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+.more.inline { order: -1; }
+.more.inline > summary { display: none; }
+.more.inline .more-panel { position: static; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 0; min-width: 0; background: none; border: 0; box-shadow: none; }
+
+.hud {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 22px; margin: 0;
+  font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums;
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding-block: 9px;
+}
+.hud b { color: var(--text); font-weight: 600; }
+.lives { display: inline-flex; gap: 4px; align-items: center; vertical-align: middle; }
+.life { display: inline-block; opacity: 1; transition: opacity 200ms ease; }
+.life.lost { opacity: 0.18; filter: grayscale(1); }
+
+/* Level map */
+.map { display: flex; flex-direction: column; gap: 28px; }
+.tier { display: flex; flex-direction: column; gap: 10px; }
+.tier-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; }
+.tier-head h2 { font-family: var(--display); font-weight: 400; font-size: calc(var(--display-size) * 0.55); letter-spacing: 1px; margin: 0; line-height: 1; }
+.tier-head p { margin: 0; color: var(--muted); font-size: 12px; }
+.levels { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 6px; }
+.lvl {
+  min-height: 52px; border-radius: 4px; border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  font-family: var(--ui); font-size: var(--ui-size); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.lvl small { font-family: var(--body); font-size: 9px; letter-spacing: 1px; color: var(--muted); }
+.lvl.cleared { border-color: var(--muted); }
+.lvl.cleared small { color: var(--text); }
+.lvl.next { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.lvl.next small { color: var(--accent-text); }
+.lvl:disabled { opacity: 0.35; cursor: default; }
+
+/* Play */
+.play { display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: flex-start; }
+.board-wrap { flex: none; position: relative; }
+.board { display: grid; touch-action: manipulation; user-select: none; -webkit-user-select: none; box-sizing: content-box; }
+.cell {
+  position: relative; padding: 0; margin: 0; cursor: pointer; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center; border-style: solid;
+  -webkit-tap-highlight-color: transparent;
+}
+.cell .x { display: block; pointer-events: none; }
+.cell.wrong { animation: shake 0.35s ease; }
+.cell .tok { pointer-events: none; animation: pop 160ms ease-out; }
+@keyframes pop { from { transform: scale(0.6); opacity: 0.4; } to { transform: scale(1); opacity: 1; } }
+@keyframes shake { 20% { transform: translateX(-3px); } 50% { transform: translateX(3px); } 80% { transform: translateX(-2px); } }
+.side { display: flex; flex-direction: column; gap: 12px; flex: 1 1 220px; min-width: 0; max-width: 420px; }
+.side .row { display: flex; flex-wrap: wrap; gap: 8px; }
+.msg { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; min-height: 2.6em; }
+.msg strong { color: var(--text); font-weight: 600; }
+.how { margin: 0; padding-left: 18px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.how b { color: var(--text); font-weight: 600; }
+
+.result {
+  border: 1px solid var(--line); background: var(--surface); padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.result h2 { font-family: var(--display); font-weight: 400; font-size: calc(var(--display-size) * 0.55); letter-spacing: 1px; margin: 0; line-height: 1; }
+.result p { margin: 0; color: var(--muted); }
+.result .unlock, .result .unlock strong { color: var(--text); }
+.home-link { display: inline-block; margin-bottom: 6px; color: var(--muted); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; padding-block: 6px; }
+.home-link:hover { color: var(--text); }
+.home-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.result .row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+@media (max-height: 860px) and (min-width: 600px) {
+  .app { gap: 12px; padding-block: 10px 40px; }
+  h1 { font-size: calc(var(--display-size) * 0.72); }
+}
+@media (max-width: 599px) {
+  .app { gap: 12px; padding-block: 10px 40px; }
+  .top { align-items: center; }
+  h1 { font-size: calc(var(--display-size) * 0.6); }
+  .sub { display: none; }
+  .btn { padding: 0 12px; }
+  .hud { gap: 4px 14px; padding-block: 6px; font-size: 11px; }
+  .hud .x2 { display: none; }
+  .levels { grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); }
+  .lvl { min-height: 46px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cell.wrong, .cell .tok { animation: none; }
+}
+</style>
+
+<main class="app">
+  <header class="top">
+    <div>
+      <a class="home-link" href="index.html">‹ The Devil &amp; The Cosmonaut</a>
+      <h1>Cosmonaut Sudoku</h1>
+      <p class="sub" id="sub">Place the tokens: one in every row, column and region, never touching</p>
+    </div>
+    <div class="controls">
+      <button type="button" class="btn" id="btn-levels">Levels</button>
+      <details class="more" id="more">
+        <summary class="btn">More</summary>
+        <div class="more-panel">
+          <label class="deck-pick" for="deck"><span>Deck</span><select id="deck"></select></label>
+          <button type="button" class="btn" id="btn-autox" aria-pressed="false">Auto-X off</button>
+        </div>
+      </details>
+    </div>
+  </header>
+
+  <p class="hud" id="hud" aria-label="Status"></p>
+
+  <section class="map" id="map" aria-label="Levels" hidden></section>
+
+  <section class="play" id="play" hidden>
+    <div class="board-wrap">
+      <div class="board" id="board" role="grid" aria-label="Puzzle grid"></div>
+    </div>
+    <div class="side" id="side">
+      <section class="result" id="result" hidden aria-live="polite">
+        <h2 id="result-title"></h2>
+        <p id="result-text"></p>
+        <p class="unlock" id="result-unlock" hidden></p>
+        <div class="row">
+          <button type="button" class="btn primary" id="btn-result-main"></button>
+          <button type="button" class="btn" id="btn-result-map">Levels</button>
+        </div>
+      </section>
+      <p class="msg" id="msg" aria-live="polite"></p>
+      <div class="row">
+        <button type="button" class="btn" id="btn-undo">Undo X</button>
+        <button type="button" class="btn" id="btn-clear">Clear X's</button>
+      </div>
+      <ul class="how">
+        <li><b>Tap</b> a cell to mark an X. Tap it again to clear it.</li>
+        <li><b>Double tap</b> a cell to place a token. On a keyboard, press S on a cell.</li>
+        <li>Every row, column and coloured region needs exactly <b id="how-k">one token</b>. Tokens can never touch, not even diagonally.</li>
+        <li>A token in the wrong place costs a <b>life</b>. Lose all three and the mission fails: you lose points and restart the level.</li>
+        <li>Undo takes back X marks. Placed tokens stay.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+<script src="engine.js"></script>
+<script src="art-void-ink.js"></script>
+<script src="art-neon-riot.js"></script>
+<script src="levels.js"></script>
+<script src="app.js"></script>
+<script src="cosmo.js"></script>

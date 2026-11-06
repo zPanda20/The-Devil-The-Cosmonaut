@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>The Devil &amp; The Cosmonaut</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+/* Home: title, unlock banner, daily mission, the two games, then the deck shelf. Colours and type come from the equipped deck. */
+:root {
+  --table: #0E0B0B;
+  --surface: #1A1414;
+  --line: #3A2C2C;
+  --text: #F3EAE0;
+  --muted: #B9A9A0;
+  --accent: #D7261E;
+  --accent-text: #F3EAE0;
+  --warn: #E8B33A;
+  --display: Impact, 'Arial Narrow', sans-serif;
+  --ui: Impact, 'Arial Narrow', sans-serif;
+  --body: system-ui, sans-serif;
+  --display-size: clamp(42px, 7vw, 68px);
+  --ui-size: 18px;
+  --body-size: 14px;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { background: var(--table); color: var(--text); transition: background-color 200ms ease; }
+body { margin: 0; font-family: var(--body); font-size: var(--body-size); }
+.app {
+  max-width: 1120px; margin: 0 auto;
+  padding-block: 20px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 22px;
+}
+.kicker { margin: 0; color: var(--muted); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; }
+h1 { font-family: var(--display); font-weight: 400; font-size: calc(var(--display-size) * 1.15); line-height: 0.92; letter-spacing: 1px; margin: 6px 0 0; text-wrap: balance; }
+h1 .amp { color: var(--accent); }
+h2 { font-family: var(--display); font-weight: 400; font-size: calc(var(--display-size) * 0.55); letter-spacing: 1px; margin: 0; line-height: 1; text-wrap: balance; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border-radius: 4px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--text); text-decoration: none;
+  font-family: var(--ui); font-size: var(--ui-size); letter-spacing: 1px; cursor: pointer;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.btn:focus-visible, .tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.banner { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid var(--accent); border-radius: 6px; background: var(--surface); }
+.banner p { margin: 0; line-height: 1.5; }
+.banner strong { font-weight: 700; }
+
+.card { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card p { margin: 0; color: var(--muted); line-height: 1.55; }
+.card .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+.stats { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats b { color: var(--text); font-weight: 600; font-size: 15px; }
+.stats div { display: flex; flex-direction: column; gap: 2px; }
+.stats dt { letter-spacing: 0.08em; text-transform: uppercase; font-size: 10px; }
+.stats dd { margin: 0; }
+
+.daily { border-color: var(--accent); flex-direction: row; flex-wrap: wrap; align-items: center; gap: 16px 24px; }
+.daily .info { flex: 1 1 260px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.daily .grid-mini { flex: none; display: grid; gap: 2px; padding: 4px; background: var(--line); border-radius: 3px; }
+.daily .grid-mini i { display: block; width: 9px; height: 9px; border-radius: 1px; }
+.daily .row { margin: 0; }
+
+.games { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; }
+.game-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.fan { position: relative; flex: none; height: 84px; }
+.fan > div { position: absolute; top: 0; }
+.tok-row { display: flex; gap: 4px; flex: none; }
+
+.shelf-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; }
+.shelf-head p { margin: 0; color: var(--muted); font-size: 12px; }
+.shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 12px; }
+.tile {
+  text-align: left; font: inherit; color: var(--text); cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 12px;
+  display: flex; flex-direction: column; gap: 10px; min-width: 0;
+}
+.tile:hover:not([aria-disabled="true"]) { border-color: var(--muted); }
+.tile.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.tile[aria-disabled="true"] { cursor: default; }
+.tile .pair { display: flex; gap: 6px; height: 95px; }
+.tile.locked .pair { opacity: 0.38; filter: grayscale(0.7); }
+.tile .name { font-family: var(--ui); font-size: calc(var(--ui-size) * 0.95); letter-spacing: 1px; line-height: 1.1; }
+.tile .tag { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.tile.on .tag { color: var(--accent); }
+.tile .new { color: var(--warn); }
+.routes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.routes li { font-size: 11px; line-height: 1.4; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+.routes .bar { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.routes .bar i { display: block; height: 100%; background: var(--accent); }
+.routes .or { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.7; }
+
+@media (max-width: 599px) {
+  .app { gap: 16px; padding-block: 12px 48px; }
+  h1 { font-size: calc(var(--display-size) * 0.95); }
+  .card { padding: 14px; }
+  .shelf { grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 8px; }
+  .tile { padding: 10px; }
+}
+</style>
+
+<main class="app">
+  <header>
+    <p class="kicker">Two games · ten decks · one table</p>
+    <h1>The Devil <span class="amp">&amp;</span> The Cosmonaut</h1>
+  </header>
+
+  <section class="banner" id="banner" hidden aria-live="polite"></section>
+
+  <section class="card daily" id="daily" aria-label="Daily mission"></section>
+
+  <section class="games" aria-label="Games">
+    <article class="card" id="card-grip"></article>
+    <article class="card" id="card-cosmo"></article>
+  </section>
+
+  <section aria-labelledby="shelf-title" style="display:flex;flex-direction:column;gap:12px">
+    <div class="shelf-head">
+      <h2 id="shelf-title">Decks</h2>
+      <p id="shelf-sub"></p>
+    </div>
+    <div class="shelf" id="shelf"></div>
+  </section>
+</main>
+
+<script src="engine.js"></script>
+<script src="art-void-ink.js"></script>
+<script src="art-neon-riot.js"></script>
+<script src="levels.js"></script>
+<script src="app.js"></script>
+<script>
+(function () {
+  'use strict';
+  var CE = window.CardEngine, App = window.App, PACK = window.COSMO_LEVELS;
+  var TIER_POINTS = { 'launch': 10, 'orbit': 20, 'deep-space': 35, 'binary-stars': 50, 'event-horizon': 75 };
+  var LEVELS = [];
+  PACK.tiers.forEach(function (t) { t.levels.forEach(function (l) { LEVELS.push({ tier: t.id, tierName: t.name, n: l.n, k: l.k, r: l.r }); }); });
+  var deck = App.getDeck();
+  var fresh = App.takeFresh();
+  function $(id) { return document.getElementById(id); }
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+
+  function renderBanner() {
+    var b = $('banner');
+    if (!fresh.length) { b.hidden = true; return; }
+    b.innerHTML = '<p><strong>New deck' + (fresh.length > 1 ? 's' : '') + ' unlocked: ' + App.listText(App.deckNames(fresh)) + '.</strong> Tap ' + (fresh.length > 1 ? 'one' : 'it') + ' on the shelf to equip.</p>' +
+      '<button type="button" class="btn" id="banner-x">Got it</button>';
+    b.hidden = false;
+    $('banner-x').addEventListener('click', function () { fresh = []; render(); });
+  }
+
+  function renderDaily() {
+    var key = App.today(), pick = App.dailyPick(key), L = LEVELS[pick.num - 1];
+    var t = App.transformLevel({ n: L.n, r: L.r, s: [] }, pick.turn);
+    var colours = CE.regionColours(deck, L.n), cells = '';
+    for (var i = 0; i < L.n * L.n; i++) cells += '<i style="background:' + colours[parseInt(t.r.charAt(i), 36)] + '"></i>';
+    var done = App.dailyResult(key), streak = App.currentStreak(), best = App.dailyState().bestStreak;
+    var word = L.k === 1 ? 'King' : 'Queens';
+    var status = done
+      ? 'Cleared with ' + done.lives + ' of 3 lives. A new mission lands at midnight.'
+      : 'Worth ' + TIER_POINTS[L.tier] + '+ points. Clear it today to ' + (streak ? 'extend your streak' : 'start a streak') + '.';
+    $('daily').innerHTML =
+      '<div class="grid-mini" aria-hidden="true" style="grid-template-columns:repeat(' + L.n + ',9px)">' + cells + '</div>' +
+      '<div class="info">' +
+        '<p class="kicker">Daily mission · ' + App.prettyDate(key) + '</p>' +
+        '<h2>' + L.n + '×' + L.n + ' · one ' + word + ' per line</h2>' +
+        '<p>' + status + '</p>' +
+        '<dl class="stats"><div><dt>Streak</dt><dd><b>' + plural(streak, 'day', 'days') + '</b></dd></div><div><dt>Best streak</dt><dd><b>' + plural(best, 'day', 'days') + '</b></dd></div></dl>' +
+      '</div>' +
+      '<div class="row"><a class="btn' + (done ? '' : ' primary') + '" href="cosmo.html#daily">' + (done ? 'Play again' : 'Play today\'s mission') + '</a></div>';
+  }
+
+  function renderGrip() {
+    var st = App.gripStats(), save = App.load('devils-grip:game:v1');
+    var live = save && save.S && save.S.grid && !save.S.over;
+    var fan = '';
+    [{ rank: 'J', suit: 'S' }, { rank: 'Q', suit: 'H' }, { rank: 'K', suit: 'D' }].forEach(function (c, k) {
+      fan += '<div style="left:' + (k * 22) + 'px;transform:rotate(' + ((k - 1) * 7) + 'deg);transform-origin:50% 100%">' + CE.renderCard(c, deck, { width: 66 }) + '</div>';
+    });
+    $('card-grip').innerHTML =
+      '<div class="game-head"><div><p class="kicker">Solitaire · the Devil</p><h2>Devil\'s Grip</h2></div><div class="fan" style="width:112px;height:96px" aria-hidden="true">' + fan + '</div></div>' +
+      '<p>Two packs, aces out. Build 2-5-8-J, 3-6-9-Q and 4-7-10-K up the rows and leave as few cards over as you can.</p>' +
+      '<dl class="stats"><div><dt>Games</dt><dd><b>' + st.played + '</b></dd></div><div><dt>Perfect grips</dt><dd><b>' + st.wins + '</b></dd></div><div><dt>Best</dt><dd><b>' + (st.best === null ? '—' : st.best + ' left') + '</b></dd></div></dl>' +
+      '<div class="row"><a class="btn primary" href="grip.html">' + (live ? 'Resume game' : 'Deal') + '</a></div>';
+  }
+
+  function renderCosmo() {
+    var prog = App.load('cosmo:progress:v1') || {}, best = prog.best || {}, cleared = App.cosmoCleared(), next = 1;
+    while (next < LEVELS.length && best[next]) next++;
+    var all = cleared >= LEVELS.length;
+    var toks = CE.renderToken(deck, 'K', 'H', 40) + CE.renderToken(deck, 'Q', 'S', 40);
+    var L = LEVELS[next - 1];
+    $('card-cosmo').innerHTML =
+      '<div class="game-head"><div><p class="kicker">Star battle · the Cosmonaut</p><h2>Cosmonaut Sudoku</h2></div><div class="tok-row" aria-hidden="true">' + toks + '</div></div>' +
+      '<p>One token in every row, column and region, never touching. Three lives a level, ' + LEVELS.length + ' levels from 5×5 to 12×12.</p>' +
+      '<dl class="stats"><div><dt>Cleared</dt><dd><b>' + cleared + ' / ' + LEVELS.length + '</b></dd></div><div><dt>Score</dt><dd><b>' + (prog.score || 0) + '</b></dd></div><div><dt>Next</dt><dd><b>' + (all ? 'All clear' : 'Level ' + next + ' · ' + L.n + '×' + L.n) + '</b></dd></div></dl>' +
+      '<div class="row"><a class="btn primary" href="cosmo.html">' + (all ? 'Levels' : cleared ? 'Continue' : 'Launch') + '</a></div>';
+  }
+
+  function renderShelf() {
+    var list = App.decks(), open = list.filter(function (d) { return d.unlocked; }).length;
+    $('shelf-sub').textContent = open + ' of ' + list.length + ' unlocked · any one goal unlocks a deck';
+    $('shelf').innerHTML = list.map(function (d) {
+      var on = d.id === deck, isNew = fresh.indexOf(d.id) >= 0;
+      var pair = d.unlocked
+        ? CE.renderCard({ rank: 'K', suit: 'H' }, d.id, { width: 66 }) + CE.renderCard({ rank: 'Q', suit: 'S' }, d.id, { width: 66 })
+        : CE.renderBack(d.id, { width: 66 });
+      var tag = on ? 'Equipped' : d.unlocked ? (isNew ? '<span class="new">New · tap to equip</span>' : 'Tap to equip') : 'Locked';
+      var routes = d.unlocked ? '' : '<ul class="routes">' + d.routes.map(function (r, i) {
+        return (i ? '<li class="or">or</li>' : '') + '<li><span>' + r.text + ' · <b>' + r.status + '</b></span><span class="bar"><i style="width:' + Math.round(r.pct * 100) + '%"></i></span></li>';
+      }).join('') + '</ul>';
+      return '<div class="tile' + (on ? ' on' : '') + (d.unlocked ? '' : ' locked') + '" role="button" tabindex="0" data-id="' + d.id + '"' +
+        (d.unlocked ? ' aria-pressed="' + on + '"' : ' aria-disabled="true"') + ' aria-label="' + d.name + (d.unlocked ? (on ? ', equipped' : ', tap to equip') : ', locked') + '">' +
+        '<div class="pair" aria-hidden="true">' + pair + '</div>' +
+        '<div><div class="name">' + d.name + '</div><div class="tag">' + (d.starter && !on ? 'Starter · ' : '') + tag + '</div></div>' + routes + '</div>';
+    }).join('');
+  }
+
+  function render() {
+    App.applyTheme(deck);
+    renderBanner(); renderDaily(); renderGrip(); renderCosmo(); renderShelf();
+  }
+
+  function equip(el) {
+    var id = el && el.getAttribute('data-id');
+    if (!id || el.getAttribute('aria-disabled') === 'true' || id === deck) return;
+    if (App.setDeck(id)) { deck = id; render(); var t = document.querySelector('.tile[data-id="' + id + '"]'); if (t) t.focus(); }
+  }
+  $('shelf').addEventListener('click', function (e) { equip(e.target.closest('.tile')); });
+  $('shelf').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); equip(e.target.closest('.tile')); }
+  });
+  render();
+})();
+</script>
