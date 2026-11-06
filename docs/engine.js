@@ -664,7 +664,7 @@
     corner: { x: 8, y: 7, rankSize: 20, glyphSize: 19, gap: 2 },
     pip: 30, pipLarge: 38,
     suits: {
-      red: { ink: '#2B2BD9', alt: '#FF3EA5', wash: '#D4FF00' },
+      red: { ink: '#E3238B', alt: '#2B2BD9', wash: '#D4FF00' },
       black: { ink: '#111111', alt: '#2B2BD9', wash: '#D4FF00' }
     },
     faces: {
