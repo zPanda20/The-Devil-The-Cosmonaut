@@ -582,21 +582,23 @@
    * ================================================================ */
   var UV_FONT = "Cinzel, 'Trajan Pro', Georgia, serif";
   var UV_SCAN = 'background-image:repeating-linear-gradient(0deg,rgba(201,182,255,0.08) 0 1px,transparent 1px 3px);';
+  // Gilded parchment to match the tarot artwork: soft light centre, darker scorched edges.
+  var UV_PARCH = 'background-image:radial-gradient(ellipse at 50% 45%,rgba(255,214,140,0.35),transparent 70%),radial-gradient(ellipse at 50% 50%,transparent 60%,rgba(60,24,10,0.28));';
   registerStyle({
     id: 'ultraviolet-rite',
     name: 'Ultraviolet Rite',
     fontsHref: 'https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cormorant+Garamond:ital,wght@0,500;1,500&display=swap',
     fonts: { rank: UV_FONT, rankWeight: 700 },
     card: {
-      bg: '#1A0B4F', radius: 8, border: 0, extra: UV_SCAN,
-      decor: function () { return '<div style="position:absolute;inset:6px;border:1px solid #7B3FF2;border-radius:4px"></div>'; }
+      bg: '#D59A46', radius: 8, border: 0, extra: UV_PARCH,
+      decor: function () { return '<div style="position:absolute;inset:6px;border:1px solid rgba(43,18,84,0.55);border-radius:4px"></div>'; }
     },
     backCard: { bg: '#3B12A8', radius: 8, extra: 'background-image:repeating-linear-gradient(0deg,rgba(13,6,48,0.35) 0 1px,transparent 1px 3px);' },
     corner: { x: 11, y: 10, rankSize: 22, glyphSize: 19 },
     pip: 30, pipLarge: 38,
     suits: {
-      red: { ink: '#FF5A1F', alt: '#C9B6FF' },
-      black: { ink: '#C9B6FF', alt: '#FF5A1F' }
+      red: { ink: '#9E1B14', alt: '#3B1C6E' },
+      black: { ink: '#2E1660', alt: '#9E1B14' }
     },
     faces: {
       K: function (c) {
