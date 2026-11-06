@@ -359,55 +359,75 @@
   // Pure sizing maths: given the play area's width and the height left on screen,
   // choose stock/waste below the grid or beside it, whichever gives bigger cards,
   // then spend any spare height on taller stack offsets.
+  // Picks the largest card size that fits. Stacks either fan downwards (tall screens) or to the right
+  // (short, wide screens such as laptops), whichever gives bigger cards.
   function planLayout(contentW, availH, peekFor, fanFor) {
     var gap = contentW >= 900 ? 10 : contentW >= 600 ? 8 : 4;
-    var rowGap = contentW >= 600 ? 18 : 12;
+    var rowGap = contentW >= 600 ? (availH < 620 ? 12 : 18) : 12;
     var headH = contentW >= 600 ? 26 : 20;   // row name shown above a row
     var MARK = 12;                           // room for the finished / wrong-row line under the last row
-    var LABEL_W = 92, LABEL_GAP = 18, SIDE_GAP = 20;
+    var LABEL_W = 92, LABEL_GAP = 18, SIDE_GAP = 20, MAX_W = 160;
 
+    function peekX(W) { return Math.round(W * 0.26); }   // sideways fan: keeps each card's corner index visible
+    function pileW(W, fan) { return fan === 'right' ? W + 3 * peekX(W) : W; }
     // Beside-the-grid column must hold the waste fan: one card plus two fan offsets.
     function sideWidth(W) { var w = Math.max(W, 44); return Math.max(150, w + 2 * fanFor(w) + 8); }
     function fixedFor(mode, labels) { return 2 * rowGap + (labels ? 0 : 3 * headH) + MARK + (mode === 'below' ? 50 : 0); }
-    function heightFor(W, mode, labels) {
+    function heightFor(W, mode, labels, fan) {
       var H = CE.heightFor(W), pk = peekFor(W);
       var talon = mode === 'below' ? CE.heightFor(Math.max(W, 44)) : 0;
-      return fixedFor(mode, labels) + 3 * (H + 3 * pk) + talon;
+      return fixedFor(mode, labels) + 3 * (fan === 'right' ? H : H + 3 * pk) + talon;
     }
-    function widthFit(mode, labels, W) {
-      var side = mode === 'side' ? sideWidth(W) + SIDE_GAP : 0;
-      return (contentW - side - (labels ? LABEL_W + LABEL_GAP : 0) - 7 * gap) / 8;
+    function widthFor(W, mode, labels, fan) {
+      return 8 * pileW(W, fan) + 7 * gap + (labels ? LABEL_W + LABEL_GAP : 0) + (mode === 'side' ? sideWidth(W) + SIDE_GAP : 0);
+    }
+    function ok(W, mode, labels, fan) {
+      if (fan === 'right' && CE.isCompact(deckId, W)) return false;   // small cards fan downwards only
+      return widthFor(W, mode, labels, fan) <= contentW && heightFor(W, mode, labels, fan) <= availH;
+    }
+    function plan(mode, labels, fan) {
+      var W = MAX_W;
+      while (W > 30 && !ok(W, mode, labels, fan)) W--;
+      return { mode: mode, labels: labels, fan: fan, W: Math.max(30, W), fits: ok(W, mode, labels, fan) };
     }
 
-    // Largest card width that fits both the width and the height for this arrangement.
-    function plan(mode, labels) {
-      var W = Math.floor(Math.min(140, widthFit(mode, labels, 140)));
-      while (W > 30 && (W > widthFit(mode, labels, W) || heightFor(W, mode, labels) > availH)) W--;
-      var fits = heightFor(W, mode, labels) <= availH && W <= widthFit(mode, labels, W);
-      return { mode: mode, labels: labels, W: Math.max(30, W), fits: fits };
-    }
-
-    var options = [plan('below', true), plan('below', false), plan('side', true), plan('side', false)];
+    var options = [];
+    ['down', 'right'].forEach(function (fan) {
+      if (fan === 'right' && contentW < 700) return;
+      options.push(plan('below', true, fan), plan('below', false, fan), plan('side', true, fan), plan('side', false, fan));
+    });
     var best = null;
     options.forEach(function (o) {
       if (!best) { best = o; return; }
       if (o.fits !== best.fits) { if (o.fits) best = o; return; }
-      if (o.W > best.W + 1) best = o;
-      else if (Math.abs(o.W - best.W) <= 1 && o.labels && !best.labels && o.mode === best.mode) best = o;
+      var margin = o.fan !== best.fan ? (o.fan === 'right' ? 6 : -6) : 1;   // sideways fans must win clearly
+      if (o.W > best.W + margin) best = o;
+      else if (o.fan === best.fan && Math.abs(o.W - best.W) <= 1 && o.labels && !best.labels && o.mode === best.mode) best = o;
     });
 
     var L = {
-      mode: best.mode, labels: best.labels, W: best.W, gap: gap, rowGap: rowGap,
+      mode: best.mode, labels: best.labels, fan: best.fan, W: best.W, gap: gap, rowGap: rowGap,
       labelW: LABEL_W, labelGap: LABEL_GAP, sideGap: SIDE_GAP,
       sideW: best.mode === 'side' ? sideWidth(best.W) : 0, availH: availH, fits: best.fits
     };
     L.H = CE.heightFor(L.W);
-    // Spend any spare height on taller stack offsets so buried cards are easier to read.
     var basePeek = peekFor(L.W);
-    var spare = availH - heightFor(L.W, L.mode, L.labels);
-    var extra = spare > 0 ? Math.floor(spare / 9) : 0;
-    L.peek = Math.max(basePeek, Math.min(Math.round(L.H * 0.3), basePeek + extra));
-    L.pileH = L.H + 3 * L.peek;
+    if (L.fan === 'right') {
+      // Spend spare width on a wider sideways fan.
+      var spareW = contentW - widthFor(L.W, L.mode, L.labels, 'right');
+      L.peek = 0;
+      L.peekX = Math.min(Math.round(L.W * 0.42), peekX(L.W) + Math.max(0, Math.floor(spareW / 24)));
+      L.pileW = L.W + 3 * L.peekX;
+      L.pileH = L.H;
+    } else {
+      // Spend any spare height on taller stack offsets so buried cards are easier to read.
+      var spare = availH - heightFor(L.W, L.mode, L.labels, 'down');
+      var extra = spare > 0 ? Math.floor(spare / 9) : 0;
+      L.peek = Math.max(basePeek, Math.min(Math.round(L.H * 0.3), basePeek + extra));
+      L.peekX = 0;
+      L.pileW = L.W;
+      L.pileH = L.H + 3 * L.peek;
+    }
     return L;
   }
 
@@ -419,7 +439,7 @@
     var segs = window.viewport && window.viewport.segments;
     if (segs && segs.length === 2 && segs[1].y > segs[0].y + 10) vh = segs[0].y + segs[0].height;
     var playTop = play.getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
-    var availH = Math.max(260, vh - playTop - 16);
+    var availH = Math.max(260, vh - playTop - 10);
     return planLayout(contentW, availH,
       function (w) { return CE.peek(deckId, w); },
       function (w) { return CE.fanOffset(deckId, w); });
@@ -427,7 +447,9 @@
 
   function syncMoreMenu() {
     var more = $('more');
-    var inline = document.documentElement.clientWidth >= 900;
+    var w = document.documentElement.clientWidth, h = window.innerHeight;
+    var slim = (h <= 760 && w >= 600) || (h <= 1000 && w >= 900);   // one-line header (matches the CSS)
+    var inline = w >= (slim ? 1360 : 900);
     if (inline) {
       if (!more.classList.contains('inline')) { more.classList.add('inline'); more.open = true; }
     } else if (more.classList.contains('inline')) {
@@ -464,7 +486,7 @@
   function render() {
     if (!S) return;
     syncMoreMenu();
-    var L = computeLayout(); lastW = L.mode + L.W + ':' + L.peek;
+    var L = computeLayout(); lastW = L.mode + L.fan + L.W + ':' + L.peek + ':' + L.peekX;
     var play = $('play');
     play.className = 'play ' + L.mode;
     $('board').style.gap = L.rowGap + 'px';
@@ -479,12 +501,12 @@
       for (var c = 0; c < 8; c++) {
         var i = r * 8 + c, p = S.grid[i];
         var cls = 'pile ' + pileState(i) + (sel && sel.type === 'grid' && sel.i === i ? ' selected' : '') + (targets[i] ? ' target' : '');
-        var inner = p.length ? '' : '<span class="slot" style="height:' + L.H + 'px;border-radius:' + radius + 'px">' +
+        var inner = p.length ? '' : '<span class="slot" style="width:' + L.W + 'px;height:' + L.H + 'px;border-radius:' + radius + 'px">' +
           (!prefs.autoFill && supplyLeft() && !S.over ? 'Fill' : '') + '</span>';
         for (var k = 0; k < p.length; k++) {
-          inner += '<span class="card-wrap" style="top:' + (k * L.peek) + 'px">' + CE.renderCard(p[k], deckId, { width: L.W }) + '</span>';
+          inner += '<span class="card-wrap" style="' + (L.fan === 'right' ? 'top:0;left:' + (k * L.peekX) : 'top:' + (k * L.peek)) + 'px">' + CE.renderCard(p[k], deckId, { width: L.W }) + '</span>';
         }
-        piles += '<button type="button" class="' + cls + '" data-i="' + i + '" style="width:' + L.W + 'px;height:' + L.pileH + 'px" aria-label="' + pileLabel(i) + '"' + (S.over ? ' disabled' : '') + '>' + inner + '</button>';
+        piles += '<button type="button" class="' + cls + '" data-i="' + i + '" style="width:' + L.pileW + 'px;height:' + L.pileH + 'px" aria-label="' + pileLabel(i) + '"' + (S.over ? ' disabled' : '') + '>' + inner + '</button>';
       }
       var done = countDone(r);
       if (L.labels) {
@@ -601,7 +623,7 @@
       if (!S) return;
       syncMoreMenu();
       var L = computeLayout();
-      if (L.mode + L.W + ':' + L.peek !== lastW) render();
+      if (L.mode + L.fan + L.W + ':' + L.peek + ':' + L.peekX !== lastW) render();
     });
   }
   window.addEventListener('resize', refit);
