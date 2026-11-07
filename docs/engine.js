@@ -94,7 +94,8 @@
         return URL.createObjectURL(new Blob([bytes], { type: mime }));
       } catch (e) { return node; }
     }
-    var out = {};
+    if (!node || typeof node !== 'object') return node;
+    var out = Array.isArray(node) ? [] : {};
     for (var k in node) out[k] = shorten(node[k]);
     return out;
   }
@@ -111,6 +112,21 @@
     var url = f && f[SUITS[suit].color];
     if (!url) return null;
     return '<img src="' + url + '" alt="" draggable="false" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;mix-blend-mode:' + blendOf(s) + '">';
+  }
+  // Face art cropped around the subject's head (assets.focus[rank] = [x, y] as fractions of the image), zoomed by `zoom`,
+  // so a box of boxW x boxH shows the face rather than the middle of the picture. (cx, cy) is where the head should land;
+  // `need` is the area [x0, y0, x1, y1] the image must keep covered.
+  function faceArtFocused(s, rank, suit, boxW, boxH, zoom, cx, cy, need) {
+    var f = s.assets && s.assets.faces && s.assets.faces[rank];
+    var url = f && f[SUITS[suit].color];
+    if (!url) return null;
+    var fp = (s.assets.focus && s.assets.focus[rank]) || [0.5, 0.3];
+    var w = boxW * Math.max(1, zoom * (s.assets.focusZoom || 1)), h = w * BASE_H / BASE_W;   // focusZoom: decks whose subjects are small
+    var left = cx - fp[0] * w, top = cy - fp[1] * h;
+    need = need || [0, 0, boxW, boxH];
+    left = Math.min(need[0], Math.max(need[2] - w, left));
+    top = Math.min(need[1], Math.max(need[3] - h, top));
+    return '<img src="' + url + '" alt="" draggable="false" style="position:absolute;left:' + left.toFixed(1) + 'px;top:' + top.toFixed(1) + 'px;width:' + w.toFixed(1) + 'px;height:' + h.toFixed(1) + 'px;max-width:none;mix-blend-mode:' + blendOf(s) + '">';
   }
   function getStyle(id) {
     var s = styles[id];
@@ -215,7 +231,7 @@
         '<span style="font-size:' + Math.round(width * 0.28) + 'px">' + c.glyph + '</span>') + '</div>' +
       (face && faceArt(s, card.rank, card.suit)
         ? '<div style="position:absolute;left:0;right:0;bottom:0;height:64%;overflow:hidden">' +
-          faceArt(s, card.rank, card.suit).replace('object-fit:cover', 'object-fit:cover;object-position:50% 46%;transform:scale(1.5)') + '</div></div>'
+          faceArtFocused(s, card.rank, card.suit, width, h * 0.64, 1.6, width / 2, h * 0.64 * 0.45) + '</div></div>'
         : (face && c.wash ? '<div style="position:absolute;left:12%;right:12%;bottom:10%;height:34%;border-radius:3px;background:' + c.wash + '"></div>' : '') +
           '<div style="position:absolute;left:0;right:0;bottom:' + Math.round(h * 0.1) + 'px;display:flex;justify-content:center;text-align:center;font-size:' + Math.round(width * (face ? 0.42 : 0.5)) + 'px">' +
           (face ? card.rank : (suitArt(s, card.suit, Math.round(width * 0.44)) || c.glyph)) + '</div></div>');
@@ -253,7 +269,8 @@
   function renderToken(styleId, rank, suit, size) {
     var s = getStyle(styleId);
     var c = colourSet(s, { rank: rank, suit: suit });
-    var art = faceArt(s, rank, suit) || (s.faces && s.faces[rank] ? s.faces[rank](c) : '');
+    // Token: a 104-unit circle centred at (70, 104) of the 140 x 200 design box; art is zoomed onto the head.
+    var art = faceArtFocused(s, rank, suit, BASE_W, BASE_H, 1.7, 70, 100, [18, 52, 122, 156]) || (s.faces && s.faces[rank] ? s.faces[rank](c) : '');
     var k = size / 104;
     var ring = s.token && s.token.ring ? s.token.ring : c.ink;
     return '<span class="ce-token" style="position:relative;display:block;width:' + size + 'px;height:' + size + 'px;border-radius:50%;overflow:hidden;' +
