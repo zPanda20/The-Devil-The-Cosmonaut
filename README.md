@@ -1,11 +1,19 @@
 # The Devil & The Cosmonaut
 
-Two games at one table, played in the browser on phone (including folding screens) or laptop.
+Card games and puzzles at one table, played in the browser on phone (including folding screens) or laptop.
 
-- **Devil's Grip** — two-pack solitaire (aces out). Build 2-5-8-J, 3-6-9-Q and 4-7-10-K up three rows of eight and finish with as few cards left as you can.
-- **Cosmonaut Sudoku** — Star Battle / Queens. Place one token (two in the Binary Stars levels) in every row, column and region, never touching. 330 levels from 5×5 to 12×12, three lives per level, and a daily mission.
+**The Devil (card games)**
+- **Devil's Grip** — two-pack solitaire (aces out). Build 2-5-8-J, 3-6-9-Q and 4-7-10-K up three rows of eight.
+- **Klondike** — draw 1 or 3, tap-to-move or drag, optional winnable-only deals (seeds solved offline).
+- **Pyramid** — clear the pyramid in pairs that add up to 13.
+- **Hearts** — you against three computer players; passing, moon shots, first to 100.
+- **Spades** — you and a computer partner against two; bidding, nil, bags, first to 500.
 
-Ten card decks theme the whole app. Hellfire Pulp is the starter; the rest unlock through either game or a daily streak.
+**The Cosmonaut (puzzles)**
+- **Cosmonaut Sudoku** — Star Battle / Queens. 330 levels from 5×5 to 12×12, three lives per level, and a daily mission.
+- **2048** — tiles in the deck's colours; the 2048 tile turns into the deck's King.
+
+Ten card decks theme the whole app. Every game pays into one shared points total, and decks unlock at point thresholds (Hellfire Pulp is the starter).
 
 ## Play
 
@@ -17,7 +25,11 @@ Progress is saved in the browser's local storage, so it stays on the device you 
 | Path | What it is |
 |---|---|
 | `src/home.html`, `src/grip.html`, `src/cosmo.html` | Page markup and styles (home, Devil's Grip, Cosmonaut Sudoku) |
-| `src/app.js` | Shared layer: equipped deck, unlock ladder, daily mission and streaks |
+| `src/pages/*.html`, `src/ui.css` | Pages for the newer games and their shared chrome (inlined at build) |
+| `src/table.js`, `src/tricks.js` | Shared helpers for the newer games; trick-taking table and rules helpers |
+| `src/klondike.js`, `src/pyramid.js`, `src/2048.js`, `src/hearts.js`, `src/spades.js` | The newer games (Hearts and Spades keep a pure, seat-based rules core for future multiplayer) |
+| `src/klondike-deals.js` | Winnable Klondike seeds from `tools/klondike-solver.js` |
+| `src/app.js` | Shared layer: equipped deck, points bank and deck unlocks, on-demand deck art, daily mission |
 | `src/grip.js` | Devil's Grip rules, layout and UI |
 | `src/cosmo.js` | Cosmonaut Sudoku play, scoring, level map and daily mode |
 | `src/engine.js` | Card engine: draws every card, back and token for all ten deck styles |
@@ -30,7 +42,7 @@ Progress is saved in the browser's local storage, so it stays on the device you 
 ## Build
 
 ```sh
-./build.sh            # writes docs/
+./build.sh            # writes docs/ (site) and dist/ (claude.ai artifact copy)
 ```
 
 Regenerate or check the puzzles (from `tools/`):

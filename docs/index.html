@@ -231,7 +231,7 @@ h2 { font-family: var(--display); font-weight: 400; font-size: calc(var(--displa
       art: function () { return fan([{ rank: 'A', suit: 'H' }, { rank: 'Q', suit: 'S' }, { rank: '10', suit: 'H' }]); },
       stats: function () { var k = st('hearts:stats:v1'); return [['Games', k.played], ['Wins', k.wins], ['Moons', k.moons || 0]]; },
       button: function () { return liveGame('hearts:game:v1') ? 'Resume game' : 'Play'; } },
-    { id: 'spades', side: 'devil', href: 'spades.html', soon: true, kicker: 'Trick-taking', title: 'Spades',
+    { id: 'spades', side: 'devil', href: 'spades.html', kicker: 'Trick-taking', title: 'Spades',
       desc: 'You and a partner against two opponents. Bid your tricks, beware the bags, first to 500.',
       art: function () { return fan([{ rank: 'A', suit: 'S' }, { rank: 'K', suit: 'S' }, { rank: '2', suit: 'S' }]); },
       stats: function () { var k = st('spades:stats:v1'); return [['Games', k.played], ['Wins', k.wins], ['Nils made', k.nils || 0]]; },
