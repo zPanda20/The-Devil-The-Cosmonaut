@@ -87,6 +87,7 @@
       applyTheme();
       message = 'Switched to the ' + CE.getStyle(prefs.deck).name + ' deck.';
       render();
+      App.ensureArt(prefs.deck, render);
     });
   }
 
@@ -190,7 +191,7 @@
     }
     store(PROG_KEY, prog);
     P.gained = gained;
-    P.unlocked = App.checkUnlocks();
+    P.unlocked = gained ? App.award('cosmo', gained) : App.checkUnlocks();
     if (P.unlocked.length) App.fillDeckSelect($('deck'), prefs.deck);
     message = '';
     render();
@@ -201,6 +202,7 @@
     var loss = P.daily && App.dailyResult(P.daily) ? 0 : Math.round(TIER_POINTS[L.tier] * 0.5);   // replaying a cleared daily costs nothing
     P.loss = Math.min(loss, prog.score);
     prog.score = Math.max(0, prog.score - loss);
+    if (P.loss) App.award('cosmo', -P.loss);
     prog.fails++;
     store(PROG_KEY, prog);
     message = '';

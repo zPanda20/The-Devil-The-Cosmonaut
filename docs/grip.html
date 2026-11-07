@@ -270,17 +270,8 @@ h1 { font-family: var(--display); font-weight: 400; font-size: var(--display-siz
     </ul>
   </details>
 </main>
+
 <script src="engine.js"></script>
-<script src="art-void-ink.js"></script>
-<script src="art-neon-riot.js"></script>
-<script src="art-hellfire-pulp.js"></script>
-<script src="art-signal-orange.js"></script>
-<script src="art-blood-moon.js"></script>
-<script src="art-ultraviolet-rite.js"></script>
-<script src="art-glitch-runner.js"></script>
-<script src="art-carcosa-yellow.js"></script>
-<script src="art-toxic-halftone.js"></script>
-<script src="art-lilac-pixel.js"></script>
-<script src="levels.js"></script>
 <script src="app.js"></script>
+<script>document.write('<script src="art-' + App.getDeck() + '.js"><\/script>');</script>
 <script src="grip.js"></script>

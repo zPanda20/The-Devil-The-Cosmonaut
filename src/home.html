@@ -68,6 +68,19 @@ h2 { font-family: var(--display); font-weight: 400; font-size: calc(var(--displa
 .fan > div { position: absolute; top: 0; }
 .tok-row { display: flex; gap: 4px; flex: none; }
 
+.head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 14px 24px; }
+.bank { flex: 0 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.bank .num { font-family: var(--display); font-size: calc(var(--display-size) * 0.5); line-height: 1; letter-spacing: 1px; }
+.bank .num small { font-family: var(--body); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-left: 6px; }
+.bank .bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.bank .bar i { display: block; height: 100%; background: var(--accent); }
+.bank p { margin: 0; font-size: 12px; color: var(--muted); }
+.side-sec { display: flex; flex-direction: column; gap: 12px; }
+.side-head { display: flex; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.side-head p { margin: 0; color: var(--muted); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+.card.soon { opacity: 0.55; }
+.soon-tag { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 3px; padding: 4px 8px; align-self: flex-start; }
+.tile2048 { width: 52px; height: 52px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 22px; background: var(--accent); color: var(--accent-text); }
 .shelf-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; }
 .shelf-head p { margin: 0; color: var(--muted); font-size: 12px; }
 .shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 12px; }
@@ -101,18 +114,25 @@ h2 { font-family: var(--display); font-weight: 400; font-size: calc(var(--displa
 </style>
 
 <main class="app">
-  <header>
-    <p class="kicker">Two games · ten decks · one table</p>
-    <h1>The Devil <span class="amp">&amp;</span> The Cosmonaut</h1>
+  <header class="head">
+    <div>
+      <p class="kicker">Card games · puzzles · ten decks</p>
+      <h1>The Devil <span class="amp">&amp;</span> The Cosmonaut</h1>
+    </div>
+    <div class="bank" id="bank" aria-label="Points"></div>
   </header>
 
   <section class="banner" id="banner" hidden aria-live="polite"></section>
 
-  <section class="card daily" id="daily" aria-label="Daily mission"></section>
+  <section class="side-sec" aria-labelledby="devil-title">
+    <div class="side-head"><h2 id="devil-title">The Devil</h2><p>Card games</p></div>
+    <div class="games" id="devil-games"></div>
+  </section>
 
-  <section class="games" aria-label="Games">
-    <article class="card" id="card-grip"></article>
-    <article class="card" id="card-cosmo"></article>
+  <section class="side-sec" aria-labelledby="cosmo-title">
+    <div class="side-head"><h2 id="cosmo-title">The Cosmonaut</h2><p>Puzzles</p></div>
+    <section class="card daily" id="daily" aria-label="Daily mission"></section>
+    <div class="games" id="cosmo-games"></div>
   </section>
 
   <section aria-labelledby="shelf-title" style="display:flex;flex-direction:column;gap:12px">
@@ -167,45 +187,92 @@ h2 { font-family: var(--display); font-weight: 400; font-size: calc(var(--displa
       '<div class="row"><a class="btn' + (done ? '' : ' primary') + '" href="cosmo.html#daily">' + (done ? 'Play again' : 'Play today\'s mission') + '</a></div>';
   }
 
-  function renderGrip() {
-    var st = App.gripStats(), save = App.load('devils-grip:game:v1');
-    var live = save && save.S && save.S.grid && !save.S.over;
-    var fan = '';
-    [{ rank: 'J', suit: 'S' }, { rank: 'Q', suit: 'H' }, { rank: 'K', suit: 'D' }].forEach(function (c, k) {
-      fan += '<div style="left:' + (k * 22) + 'px;transform:rotate(' + ((k - 1) * 7) + 'deg);transform-origin:50% 100%">' + CE.renderCard(c, deck, { width: 66 }) + '</div>';
+  function fan(cards) {
+    var out = '';
+    cards.forEach(function (c, k) {
+      out += '<div style="left:' + (k * 22) + 'px;transform:rotate(' + ((k - 1) * 7) + 'deg);transform-origin:50% 100%">' + CE.renderCard(c, deck, { width: 66 }) + '</div>';
     });
-    $('card-grip').innerHTML =
-      '<div class="game-head"><div><p class="kicker">Solitaire · the Devil</p><h2>Devil\'s Grip</h2></div><div class="fan" style="width:112px;height:96px" aria-hidden="true">' + fan + '</div></div>' +
-      '<p>Two packs, aces out. Build 2-5-8-J, 3-6-9-Q and 4-7-10-K up the rows and leave as few cards over as you can.</p>' +
-      '<dl class="stats"><div><dt>Games</dt><dd><b>' + st.played + '</b></dd></div><div><dt>Perfect grips</dt><dd><b>' + st.wins + '</b></dd></div><div><dt>Best</dt><dd><b>' + (st.best === null ? '—' : st.best + ' left') + '</b></dd></div></dl>' +
-      '<div class="row"><a class="btn primary" href="grip.html">' + (live ? 'Resume game' : 'Deal') + '</a></div>';
+    return '<div class="fan" style="width:112px;height:96px" aria-hidden="true">' + out + '</div>';
+  }
+  function statList(items) {
+    return '<dl class="stats">' + items.map(function (it) { return '<div><dt>' + it[0] + '</dt><dd><b>' + it[1] + '</b></dd></div>'; }).join('') + '</dl>';
+  }
+  function liveGame(key, field) { var g = App.load(key); return !!(g && g.S && !g.S.over && (!field || g.S[field])); }
+  function st(key) { return App.load(key) || { played: 0, wins: 0 }; }
+
+  // Every game on the home screen. "soon" games show as coming soon until their page exists.
+  var GAMES = [
+    { id: 'grip', side: 'devil', href: 'grip.html', kicker: 'Solitaire', title: "Devil's Grip",
+      desc: 'Two packs, aces out. Build 2-5-8-J, 3-6-9-Q and 4-7-10-K up the rows and leave as few cards over as you can.',
+      art: function () { return fan([{ rank: 'J', suit: 'S' }, { rank: 'Q', suit: 'H' }, { rank: 'K', suit: 'D' }]); },
+      stats: function () { var g = App.gripStats(); return [['Games', g.played], ['Perfect grips', g.wins], ['Best', g.best === null ? '—' : g.best + ' left']]; },
+      button: function () { return liveGame('devils-grip:game:v1', 'grid') ? 'Resume game' : 'Deal'; } },
+    { id: 'klondike', side: 'devil', href: 'klondike.html', soon: true, kicker: 'Solitaire', title: 'Klondike',
+      desc: 'The classic. Build down in alternating colours, up by suit to the foundations. Draw one or three, with winnable deals on request.',
+      art: function () { return fan([{ rank: '7', suit: 'H' }, { rank: '6', suit: 'S' }, { rank: '5', suit: 'D' }]); },
+      stats: function () { var k = st('klondike:stats:v1'); return [['Games', k.played], ['Wins', k.wins], ['Streak', k.streak || 0]]; },
+      button: function () { return liveGame('klondike:game:v1') ? 'Resume game' : 'Deal'; } },
+    { id: 'pyramid', side: 'devil', href: 'pyramid.html', kicker: 'Solitaire', title: 'Pyramid',
+      desc: 'Clear the pyramid in pairs that add up to 13. Kings go alone.',
+      art: function () { return fan([{ rank: '6', suit: 'C' }, { rank: '7', suit: 'H' }, { rank: 'K', suit: 'S' }]); },
+      stats: function () { var k = st('pyramid:stats:v1'); return [['Games', k.played], ['Cleared', k.wins], ['Streak', k.streak || 0]]; },
+      button: function () { return liveGame('pyramid:game:v1') ? 'Resume game' : 'Deal'; } },
+    { id: 'hearts', side: 'devil', href: 'hearts.html', soon: true, kicker: 'Trick-taking', title: 'Hearts',
+      desc: 'Three opponents, avoid every heart and the Queen of Spades, or take them all and shoot the moon. First to 100 loses.',
+      art: function () { return fan([{ rank: 'A', suit: 'H' }, { rank: 'Q', suit: 'S' }, { rank: '10', suit: 'H' }]); },
+      stats: function () { var k = st('hearts:stats:v1'); return [['Games', k.played], ['Wins', k.wins], ['Moons', k.moons || 0]]; },
+      button: function () { return liveGame('hearts:game:v1') ? 'Resume game' : 'Play'; } },
+    { id: 'spades', side: 'devil', href: 'spades.html', soon: true, kicker: 'Trick-taking', title: 'Spades',
+      desc: 'You and a partner against two opponents. Bid your tricks, beware the bags, first to 500.',
+      art: function () { return fan([{ rank: 'A', suit: 'S' }, { rank: 'K', suit: 'S' }, { rank: '2', suit: 'S' }]); },
+      stats: function () { var k = st('spades:stats:v1'); return [['Games', k.played], ['Wins', k.wins], ['Nils made', k.nils || 0]]; },
+      button: function () { return liveGame('spades:game:v1') ? 'Resume game' : 'Play'; } },
+    { id: 'cosmo', side: 'cosmo', href: 'cosmo.html', kicker: 'Star battle', title: 'Cosmonaut Sudoku',
+      desc: 'One token in every row, column and region, never touching. Three lives a level, ' + LEVELS.length + ' levels from 5×5 to 12×12.',
+      art: function () { return '<div class="tok-row" aria-hidden="true">' + CE.renderToken(deck, 'K', 'H', 40) + CE.renderToken(deck, 'Q', 'S', 40) + '</div>'; },
+      stats: function () {
+        var prog = App.load('cosmo:progress:v1') || {}, best = prog.best || {}, cleared = App.cosmoCleared(), next = 1;
+        while (next < LEVELS.length && best[next]) next++;
+        var L = LEVELS[next - 1];
+        return [['Cleared', cleared + ' / ' + LEVELS.length], ['Score', prog.score || 0], ['Next', cleared >= LEVELS.length ? 'All clear' : 'Level ' + next + ' · ' + L.n + '×' + L.n]];
+      },
+      button: function () { var c = App.cosmoCleared(); return c >= LEVELS.length ? 'Levels' : c ? 'Continue' : 'Launch'; } },
+    { id: 'g2048', side: 'cosmo', href: '2048.html', soon: true, kicker: 'Sliding tiles', title: '2048',
+      desc: "Slide and merge matching tiles. Reach 2048 and the tile turns into your deck's King.",
+      art: function () { return '<div class="tile2048" aria-hidden="true">2048</div>'; },
+      stats: function () { var k = st('2048:stats:v1'); return [['Games', k.played], ['Best', k.best || 0], ['Top tile', k.top || '—']]; },
+      button: function () { return liveGame('2048:game:v1') ? 'Resume game' : 'Play'; } }
+  ];
+
+  function gameCard(g) {
+    return '<article class="card' + (g.soon ? ' soon' : '') + '">' +
+      '<div class="game-head"><div><p class="kicker">' + g.kicker + '</p><h2>' + g.title + '</h2></div>' + g.art() + '</div>' +
+      '<p>' + g.desc + '</p>' +
+      (g.soon ? '' : statList(g.stats())) +
+      '<div class="row">' + (g.soon ? '<span class="soon-tag">Coming soon</span>' : '<a class="btn primary" href="' + g.href + '">' + g.button() + '</a>') + '</div></article>';
+  }
+  function renderGames() {
+    $('devil-games').innerHTML = GAMES.filter(function (g) { return g.side === 'devil'; }).map(gameCard).join('');
+    $('cosmo-games').innerHTML = GAMES.filter(function (g) { return g.side === 'cosmo'; }).map(gameCard).join('');
   }
 
-  function renderCosmo() {
-    var prog = App.load('cosmo:progress:v1') || {}, best = prog.best || {}, cleared = App.cosmoCleared(), next = 1;
-    while (next < LEVELS.length && best[next]) next++;
-    var all = cleared >= LEVELS.length;
-    var toks = CE.renderToken(deck, 'K', 'H', 40) + CE.renderToken(deck, 'Q', 'S', 40);
-    var L = LEVELS[next - 1];
-    $('card-cosmo').innerHTML =
-      '<div class="game-head"><div><p class="kicker">Star battle · the Cosmonaut</p><h2>Cosmonaut Sudoku</h2></div><div class="tok-row" aria-hidden="true">' + toks + '</div></div>' +
-      '<p>One token in every row, column and region, never touching. Three lives a level, ' + LEVELS.length + ' levels from 5×5 to 12×12.</p>' +
-      '<dl class="stats"><div><dt>Cleared</dt><dd><b>' + cleared + ' / ' + LEVELS.length + '</b></dd></div><div><dt>Score</dt><dd><b>' + (prog.score || 0) + '</b></dd></div><div><dt>Next</dt><dd><b>' + (all ? 'All clear' : 'Level ' + next + ' · ' + L.n + '×' + L.n) + '</b></dd></div></dl>' +
-      '<div class="row"><a class="btn primary" href="cosmo.html">' + (all ? 'Levels' : cleared ? 'Continue' : 'Launch') + '</a></div>';
+  function renderBank() {
+    var t = App.points(), nd = App.nextDeck();
+    $('bank').innerHTML = '<div class="num">' + t.toLocaleString() + '<small>points</small></div>' +
+      (nd ? '<div class="bar"><i style="width:' + Math.round(nd.pct * 100) + '%"></i></div><p>' + (nd.need - t).toLocaleString() + ' more to unlock ' + nd.name + '</p>'
+          : '<p>Every deck unlocked.</p>');
   }
 
   function renderShelf() {
     var list = App.decks(), open = list.filter(function (d) { return d.unlocked; }).length;
-    $('shelf-sub').textContent = open + ' of ' + list.length + ' unlocked · any one goal unlocks a deck';
+    $('shelf-sub').textContent = open + ' of ' + list.length + ' unlocked · every game earns points toward the next deck';
     $('shelf').innerHTML = list.map(function (d) {
       var on = d.id === deck, isNew = fresh.indexOf(d.id) >= 0;
       var pair = d.unlocked
         ? CE.renderCard({ rank: 'K', suit: 'H' }, d.id, { width: 66 }) + CE.renderCard({ rank: 'Q', suit: 'S' }, d.id, { width: 66 })
         : CE.renderBack(d.id, { width: 66 });
       var tag = on ? 'Equipped' : d.unlocked ? (isNew ? '<span class="new">New · tap to equip</span>' : 'Tap to equip') : 'Locked';
-      var routes = d.unlocked ? '' : '<ul class="routes">' + d.routes.map(function (r, i) {
-        return (i ? '<li class="or">or</li>' : '') + '<li><span>' + r.text + ' · <b>' + r.status + '</b></span><span class="bar"><i style="width:' + Math.round(r.pct * 100) + '%"></i></span></li>';
-      }).join('') + '</ul>';
+      var routes = d.unlocked ? '' : '<ul class="routes"><li><span>Unlocks at <b>' + d.need.toLocaleString() + ' points</b></span><span class="bar"><i style="width:' + Math.round(d.pct * 100) + '%"></i></span></li></ul>';
       return '<div class="tile' + (on ? ' on' : '') + (d.unlocked ? '' : ' locked') + '" role="button" tabindex="0" data-id="' + d.id + '"' +
         (d.unlocked ? ' aria-pressed="' + on + '"' : ' aria-disabled="true"') + ' aria-label="' + d.name + (d.unlocked ? (on ? ', equipped' : ', tap to equip') : ', locked') + '">' +
         '<div class="pair" aria-hidden="true">' + pair + '</div>' +
@@ -213,20 +280,30 @@ h2 { font-family: var(--display); font-weight: 400; font-size: calc(var(--displa
     }).join('');
   }
 
+  // Art for other unlocked decks loads after the page is up, so the shelf previews sharpen in place.
+  function loadShelfArt() {
+    App.decks().forEach(function (d) { if (d.unlocked && !App.artLoaded(d.id)) App.ensureArt(d.id, renderShelf); });
+  }
+
   function render() {
     App.applyTheme(deck);
-    renderBanner(); renderDaily(); renderGrip(); renderCosmo(); renderShelf();
+    renderBank(); renderBanner(); renderDaily(); renderGames(); renderShelf();
   }
 
   function equip(el) {
     var id = el && el.getAttribute('data-id');
     if (!id || el.getAttribute('aria-disabled') === 'true' || id === deck) return;
-    if (App.setDeck(id)) { deck = id; render(); var t = document.querySelector('.tile[data-id="' + id + '"]'); if (t) t.focus(); }
+    if (App.setDeck(id)) {
+      deck = id; render();
+      App.ensureArt(id, render);
+      var t = document.querySelector('.tile[data-id="' + id + '"]'); if (t) t.focus();
+    }
   }
   $('shelf').addEventListener('click', function (e) { equip(e.target.closest('.tile')); });
   $('shelf').addEventListener('keydown', function (e) {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); equip(e.target.closest('.tile')); }
   });
   render();
+  setTimeout(loadShelfArt, 400);
 })();
 </script>

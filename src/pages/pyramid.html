@@ -1,0 +1,53 @@
+<title>Pyramid</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/*UI*/
+</style>
+
+<main class="app">
+  <header class="top">
+    <div>
+      <a class="home-link" href="index.html">‹ The Devil &amp; The Cosmonaut</a>
+      <h1>Pyramid</h1>
+    </div>
+    <div class="controls">
+      <button type="button" class="btn" id="btn-undo">Undo</button>
+      <button type="button" class="btn primary" id="btn-new">New deal</button>
+      <details class="more" id="more">
+        <summary class="btn">More</summary>
+        <div class="more-panel">
+          <label class="deck-pick" for="deck"><span>Deck</span><select id="deck"></select></label>
+          <label class="deck-pick" for="passes"><span>Passes</span><select id="passes"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+          <button type="button" class="btn" id="btn-hint">Hint</button>
+          <button type="button" class="btn" id="btn-end">End game</button>
+        </div>
+      </details>
+    </div>
+  </header>
+
+  <p class="hud" id="hud" aria-label="Status"></p>
+
+  <section class="result" id="result" hidden aria-live="polite">
+    <div>
+      <h2 id="result-title"></h2>
+      <p id="result-text"></p>
+      <p class="unlock" id="result-unlock" hidden></p>
+    </div>
+    <div class="row"><button type="button" class="btn primary" id="btn-again">Deal again</button><a class="btn" href="index.html">Home</a></div>
+  </section>
+
+  <div class="felt" id="felt" aria-label="Pyramid"></div>
+  <p class="msg" id="msg" aria-live="polite"></p>
+
+  <details class="rules">
+    <summary>How to play</summary>
+    <ul>
+      <li>Remove pairs of cards that add up to 13. Aces count 1, Jacks 11, Queens 12. Kings are 13 on their own: tap one to remove it.</li>
+      <li>Only uncovered cards can be used: a pyramid card is free once both cards on top of it are gone. The top of the waste is always free.</li>
+      <li>Tap the stock to turn a card onto the waste. When the stock runs out you can turn the waste over, up to the number of passes in More.</li>
+      <li>Clear the whole pyramid to win. Undo cannot reach back past a card turned from the stock.</li>
+    </ul>
+  </details>
+</main>

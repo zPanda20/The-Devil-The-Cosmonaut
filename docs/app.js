@@ -1,5 +1,5 @@
-/* The Devil & The Cosmonaut: shared layer for the home screen and both games.
- * Owns the equipped deck, the deck unlock ladder and the daily puzzle. Everything lives in this browser's storage. */
+/* The Devil & The Cosmonaut: shared layer for the home screen and every game.
+ * Owns the equipped deck, the shared points bank and deck unlocks, deck art loading and the daily puzzle. Everything lives in this browser's storage. */
 (function () {
   'use strict';
   var CE = window.CardEngine;
@@ -13,44 +13,52 @@
   function gripStats() { var s = load('devils-grip:stats:v1'); return { played: (s && s.played) || 0, wins: (s && s.wins) || 0, best: s && typeof s.best === 'number' ? s.best : null }; }
   function cosmoCleared() { var p = load('cosmo:progress:v1'), n = 0; if (p && p.best) for (var k in p.best) if (p.best[k]) n++; return n; }
 
-  /* ---------- unlock ladder: any one route unlocks the deck ---------- */
-  // kind: cosmo = Cosmonaut levels cleared · played = Devil's Grip games finished · best = finish with at most N cards left
-  //       wins = perfect grips · streak = best daily streak
+  /* ---------- shared points: every game pays into one bank; decks unlock at thresholds ---------- */
+  var POINTS_KEY = 'app:points:v1';
   var LADDER = [
-    { id: 'hellfire-pulp', routes: [] },
-    { id: 'blood-moon', routes: [['cosmo', 10], ['played', 3]] },
-    { id: 'void-ink', routes: [['cosmo', 40], ['best', 10]] },
-    { id: 'signal-orange', routes: [['cosmo', 70], ['best', 8], ['streak', 3]] },
-    { id: 'neon-riot', routes: [['cosmo', 120], ['best', 6]] },
-    { id: 'glitch-runner', routes: [['cosmo', 160], ['best', 5], ['streak', 7]] },
-    { id: 'carcosa-yellow', routes: [['cosmo', 200], ['best', 3]] },
-    { id: 'ultraviolet-rite', routes: [['cosmo', 240], ['best', 2], ['streak', 14]] },
-    { id: 'toxic-halftone', routes: [['cosmo', 270], ['wins', 1]] },
-    { id: 'lilac-pixel', routes: [['cosmo', 330], ['wins', 5], ['streak', 30]] }
+    { id: 'hellfire-pulp', need: 0 },
+    { id: 'blood-moon', need: 150 },
+    { id: 'void-ink', need: 500 },
+    { id: 'signal-orange', need: 1000 },
+    { id: 'neon-riot', need: 1800 },
+    { id: 'glitch-runner', need: 3000 },
+    { id: 'carcosa-yellow', need: 4500 },
+    { id: 'ultraviolet-rite', need: 6500 },
+    { id: 'toxic-halftone', need: 9000 },
+    { id: 'lilac-pixel', need: 12000 }
   ];
+  var GAME_NAMES = { cosmo: 'Cosmonaut Sudoku', grip: "Devil's Grip", klondike: 'Klondike', pyramid: 'Pyramid', g2048: '2048', hearts: 'Hearts', spades: 'Spades' };
 
-  function snapshot() { var g = gripStats(); return { cosmo: cosmoCleared(), played: g.played, best: g.best, wins: g.wins, streak: dailyState().bestStreak || 0 }; }
+  // First run of the points system: convert progress made before it existed.
+  function seedPoints() {
+    var cp = load('cosmo:progress:v1'), g = gripStats();
+    var by = { cosmo: Math.max(0, (cp && cp.score) || 0), grip: g.played * 15 + g.wins * 150 };
+    var bank = { total: by.cosmo + by.grip, by: by };
+    store(POINTS_KEY, bank);
+    return bank;
+  }
+  function bank() { var b = load(POINTS_KEY); return b && typeof b.total === 'number' ? b : seedPoints(); }
+  function points() { return bank().total; }
+  function pointsBy(game) { return bank().by[game] || 0; }
 
-  function routeInfo(route, snap) {
-    var kind = route[0], need = route[1], have, met, text, status;
-    if (kind === 'cosmo') { have = snap.cosmo; met = have >= need; text = need === 330 ? 'Clear all 330 Cosmonaut levels' : 'Clear ' + need + ' Cosmonaut levels'; status = Math.min(have, need) + ' / ' + need; }
-    else if (kind === 'played') { have = snap.played; met = have >= need; text = 'Finish ' + need + " games of Devil's Grip"; status = Math.min(have, need) + ' / ' + need; }
-    else if (kind === 'best') { have = snap.best; met = have !== null && have <= need; text = "Finish Devil's Grip with " + need + ' or fewer cards left'; status = have === null ? 'no finished game yet' : 'best ' + have + ' left'; }
-    else if (kind === 'wins') { have = snap.wins; met = have >= need; text = need === 1 ? "Get a perfect grip in Devil's Grip" : 'Get ' + need + ' perfect grips'; status = Math.min(have, need) + ' / ' + need; }
-    else { have = snap.streak; met = have >= need; text = 'Reach a ' + need + '-day daily streak'; status = 'best ' + have + (have === 1 ? ' day' : ' days'); }
-    var pct = kind === 'best' ? (have === null ? 0 : Math.max(0, Math.min(1, (20 - have) / (20 - need)))) : Math.min(1, (have || 0) / need);
-    return { kind: kind, need: need, text: text, status: status, met: met, pct: pct };
+  // Adds (or, with a negative amount, removes) points for a game. Returns the decks this unlocked.
+  function award(game, amount) {
+    var b = bank();
+    amount = Math.round(amount || 0);
+    b.total = Math.max(0, b.total + amount);
+    b.by[game] = Math.max(0, (b.by[game] || 0) + amount);
+    store(POINTS_KEY, b);
+    return checkUnlocks();
   }
 
   function unlockState() { var u = load(UNLOCK_KEY); return { ids: (u && u.ids) || [STARTER], fresh: (u && u.fresh) || [] }; }
 
   // Records every newly earned deck and returns their ids (unlocks are permanent).
   function checkUnlocks() {
-    var u = unlockState(), snap = snapshot(), gained = [];
+    var u = unlockState(), total = points(), gained = [];
     if (u.ids.indexOf(STARTER) < 0) u.ids.push(STARTER);
     LADDER.forEach(function (d) {
-      if (u.ids.indexOf(d.id) >= 0) return;
-      if (d.routes.some(function (r) { return routeInfo(r, snap).met; })) { u.ids.push(d.id); u.fresh.push(d.id); gained.push(d.id); }
+      if (u.ids.indexOf(d.id) < 0 && total >= d.need) { u.ids.push(d.id); u.fresh.push(d.id); gained.push(d.id); }
     });
     store(UNLOCK_KEY, u);
     return gained;
@@ -59,17 +67,44 @@
   function takeFresh() { var u = unlockState(), f = u.fresh; u.fresh = []; store(UNLOCK_KEY, u); return f; }
 
   function decks() {
-    var u = unlockState(), snap = snapshot();
+    var u = unlockState(), total = points();
     return LADDER.map(function (d, i) {
       return { id: d.id, name: CE.getStyle(d.id).name, order: i, unlocked: u.ids.indexOf(d.id) >= 0, starter: d.id === STARTER,
-        routes: d.routes.map(function (r) { return routeInfo(r, snap); }) };
+        need: d.need, pct: d.need ? Math.min(1, total / d.need) : 1 };
     });
+  }
+  function nextDeck() {
+    var list = decks();
+    for (var i = 0; i < list.length; i++) if (!list[i].unlocked) return list[i];
+    return null;
   }
   function deckNames(ids) { return ids.map(function (id) { return CE.getStyle(id).name; }); }
   function listText(names) { return names.length < 2 ? names.join('') : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1]; }
   function unlockMessage(ids) {
     if (!ids.length) return '';
     return '<strong>Deck unlocked: ' + listText(deckNames(ids)) + '.</strong> Equip ' + (ids.length > 1 ? 'them' : 'it') + ' from the deck menu or the home screen.';
+  }
+  // One line for a result panel: points earned and how far the next deck is.
+  function pointsLine(earned) {
+    var nd = nextDeck(), t = points();
+    return (earned > 0 ? '+' + earned + ' points · ' : '') + t.toLocaleString() + ' total' +
+      (nd ? ' · ' + (nd.need - t).toLocaleString() + ' to ' + nd.name : ' · every deck unlocked');
+  }
+
+  /* ---------- deck art: only the decks a page needs are loaded ---------- */
+  var artState = {};
+  function artLoaded(id) { var s = CE.getStyle(id); return !!(s.assets && s.assets.faces); }
+  function ensureArt(id, cb) {
+    if (artLoaded(id)) { if (cb) cb(); return; }
+    var st = artState[id];
+    if (!st) {
+      st = artState[id] = { cbs: [] };
+      var el = document.createElement('script');
+      el.src = 'art-' + id + '.js';
+      el.onload = el.onerror = function () { st.done = true; st.cbs.splice(0).forEach(function (f) { f(); }); };
+      document.head.appendChild(el);
+    }
+    if (cb) { if (st.done) cb(); else st.cbs.push(cb); }
   }
 
   function getDeck() {
@@ -155,8 +190,10 @@
     STARTER: STARTER,
     load: load, store: store,
     gripStats: gripStats, cosmoCleared: cosmoCleared,
-    checkUnlocks: checkUnlocks, isUnlocked: isUnlocked, takeFresh: takeFresh, decks: decks,
+    checkUnlocks: checkUnlocks, isUnlocked: isUnlocked, takeFresh: takeFresh, decks: decks, nextDeck: nextDeck,
     deckNames: deckNames, unlockMessage: unlockMessage, listText: listText,
+    points: points, pointsBy: pointsBy, award: award, pointsLine: pointsLine, GAME_NAMES: GAME_NAMES,
+    ensureArt: ensureArt, artLoaded: artLoaded,
     getDeck: getDeck, setDeck: setDeck, fillDeckSelect: fillDeckSelect, applyTheme: applyTheme,
     today: today, prettyDate: prettyDate, shiftDay: shiftDay,
     dailyPick: dailyPick, transformLevel: transformLevel,

@@ -41,6 +41,7 @@
       applyTheme();
       message = 'Switched to the ' + CE.getStyle(deckId).name + ' deck.';
       render();
+      App.ensureArt(deckId, render);
     });
   }
 
@@ -101,7 +102,9 @@
     var left = cardsLeft();
     if (st.best === null || left < st.best) st.best = left;
     store(STATS_KEY, st);
-    S.unlocked = App.checkUnlocks();
+    // Points: a perfect grip pays 150; otherwise fewer cards left pays more.
+    S.points = left === 0 ? 150 : Math.max(5, 50 - 2 * left);
+    S.unlocked = App.award('grip', S.points);
     if (S.unlocked.length) App.fillDeckSelect($('deck'), deckId);
   }
 
@@ -570,6 +573,7 @@
       $('result-text').textContent = S.won
         ? 'All 96 cards are home in ' + S.moves + ' moves.'
         : left + (left === 1 ? ' card' : ' cards') + ' left in the stock and waste · ' + countDone() + ' of 24 piles finished.';
+      if (S.points) $('result-text').textContent += ' ' + App.pointsLine(S.points) + '.';
       $('result-unlock').innerHTML = S.unlocked && S.unlocked.length ? App.unlockMessage(S.unlocked) : '';
       $('result-unlock').hidden = !(S.unlocked && S.unlocked.length);
       res.hidden = false;
