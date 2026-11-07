@@ -17,6 +17,9 @@ COMMON='<script src="engine.js"></script>
 <script src="art-blood-moon.js"></script>
 <script src="art-ultraviolet-rite.js"></script>
 <script src="art-glitch-runner.js"></script>
+<script src="art-carcosa-yellow.js"></script>
+<script src="art-toxic-halftone.js"></script>
+<script src="art-lilac-pixel.js"></script>
 <script src="levels.js"></script>
 <script src="app.js"></script>'
 # Level pack: tools/levels.json -> src/levels.js

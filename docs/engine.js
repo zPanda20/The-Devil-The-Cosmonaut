@@ -795,7 +795,7 @@
     name: 'Carcosa Yellow',
     fontsHref: 'https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&display=swap',
     fonts: { rank: CY_FONT },
-    card: { bg: '#F5D66B', radius: 6, border: 0, shadow: '0 2px 0 #111' },
+    card: { bg: '#F6BE2C', radius: 6, border: 0, shadow: '0 2px 0 #111' },
     backCard: { bg: '#E8B21E', radius: 6, shadow: '0 2px 0 #111' },
     corner: { x: 9, y: 5, rankSize: 28, glyphSize: 19 },
     pip: 30, pipLarge: 38,
@@ -865,8 +865,8 @@
     corner: { x: 8, y: 7, rankSize: 20, glyphSize: 19, gap: 1 },
     pip: 30, pipLarge: 38,
     suits: {
-      red: { ink: '#E05CF0', alt: '#7CF25A' },
-      black: { ink: '#7CF25A', alt: '#E05CF0' }
+      red: { ink: '#F21F8E', alt: '#94D744' },
+      black: { ink: '#94D744', alt: '#F21F8E' }
     },
     faces: {
       K: function (c) {
