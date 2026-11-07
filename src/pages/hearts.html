@@ -1,0 +1,71 @@
+<title>Hearts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/*UI*/
+.seat { position: absolute; display: flex; flex-direction: column; gap: 4px; z-index: 3; }
+.seat-name { font-family: var(--ui); font-size: calc(var(--ui-size) * 0.85); letter-spacing: 1px; color: var(--text); }
+.seat.active .seat-name { color: var(--accent); }
+.seat-status { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.center-msg { position: absolute; left: 50%; transform: translateX(-50%); text-align: center; font-size: 13px; color: var(--muted); width: min(92%, 420px); line-height: 1.45; z-index: 4; pointer-events: none; }
+.center-msg strong { color: var(--text); }
+.hit.dim { opacity: 0.45; }
+.hit.got::before { content: ""; position: absolute; left: 50%; top: -7px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: var(--accent); }
+.tcard { position: absolute; transition: left 260ms ease, top 260ms ease, opacity 260ms ease; z-index: 2; }
+.scoretable { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 12px; }
+.scoretable th, .scoretable td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+.scoretable th:first-child, .scoretable td:first-child { text-align: left; }
+.scoretable th { color: var(--muted); font-weight: 400; letter-spacing: 0.06em; }
+.scores-wrap { overflow-x: auto; }
+</style>
+
+<main class="app">
+  <header class="top">
+    <div>
+      <a class="home-link" href="index.html">‹ The Devil &amp; The Cosmonaut</a>
+      <h1>Hearts</h1>
+    </div>
+    <div class="controls">
+      <button type="button" class="btn primary" id="btn-act" hidden></button>
+      <button type="button" class="btn" id="btn-new">New game</button>
+      <details class="more" id="more">
+        <summary class="btn">More</summary>
+        <div class="more-panel">
+          <label class="deck-pick" for="deck"><span>Deck</span><select id="deck"></select></label>
+          <button type="button" class="btn" id="btn-quick" aria-pressed="false">Quick play off</button>
+        </div>
+      </details>
+    </div>
+  </header>
+
+  <p class="hud" id="hud" aria-label="Scores"></p>
+
+  <section class="result" id="result" hidden aria-live="polite">
+    <div>
+      <h2 id="result-title"></h2>
+      <p id="result-text"></p>
+      <p class="unlock" id="result-unlock" hidden></p>
+    </div>
+    <div class="row"><button type="button" class="btn primary" id="btn-again">New game</button><a class="btn" href="index.html">Home</a></div>
+  </section>
+
+  <div class="felt" id="felt" aria-label="Hearts table"></div>
+  <p class="msg" id="msg" aria-live="polite"></p>
+
+  <details class="rules" id="scores-box">
+    <summary>Score sheet</summary>
+    <div class="scores-wrap" id="score-sheet"></div>
+  </details>
+  <details class="rules">
+    <summary>How to play</summary>
+    <ul>
+      <li>Four players, thirteen cards each. Every heart you take costs 1 point and the Queen of Spades costs 13. Lowest score wins when someone reaches 100.</li>
+      <li>Before each hand, pass three cards: left, then right, then across, then no pass, and round again.</li>
+      <li>The 2 of Clubs leads the first trick. Follow suit if you can; otherwise play anything. No hearts or Queen of Spades on the first trick unless you have nothing else.</li>
+      <li>Hearts cannot be led until one has been played on another suit (or you hold nothing but hearts).</li>
+      <li>Take all 13 hearts and the Queen and you <b>shoot the moon</b>: everyone else takes 26 instead.</li>
+      <li>Tap a card to raise it, tap it again to play. Turn on Quick play in More to play with a single tap.</li>
+    </ul>
+  </details>
+</main>

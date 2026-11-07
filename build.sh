@@ -33,7 +33,8 @@ pages = {
   'pyramid.html': ('src/pages/pyramid.html', ['table.js', 'pyramid.js']),
 }
 for extra in ['klondike', '2048', 'hearts', 'spades']:
-    if os.path.exists('src/pages/%s.html' % extra): pages[extra + '.html'] = ('src/pages/%s.html' % extra, ['table.js', extra + '.js'])
+    if os.path.exists('src/pages/%s.html' % extra):
+        pages[extra + '.html'] = ('src/pages/%s.html' % extra, ['table.js'] + (['klondike-deals.js'] if extra == 'klondike' else []) + (['tricks.js'] if extra in ('hearts', 'spades') else []) + [extra + '.js'])
 for name, (src, extra) in pages.items():
     body = open(src).read().replace('/*UI*/', ui)
     html = head + '\n' + body + '\n' + scripts(*extra) + '\n'
