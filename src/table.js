@@ -12,7 +12,7 @@
 
   function applyTheme() {
     App.applyTheme(deckId);
-    var sel = $('deck'); if (sel && sel.value !== deckId) sel.value = deckId;
+    var sel = $('deck'); if (sel) sel.value = App.deckValue(deckId);
   }
 
   // The More menu sits inline on wide screens and folds into a button elsewhere (same rule as Devil's Grip).
@@ -31,8 +31,8 @@
     if (sel) {
       App.fillDeckSelect(sel, deckId);
       sel.addEventListener('change', function () {
-        if (!App.setDeck(sel.value)) { sel.value = deckId; return; }
-        deckId = sel.value;
+        if (!App.setDeck(sel.value)) { sel.value = App.deckValue(deckId); return; }
+        deckId = App.getDeck();
         applyTheme();
         cfg.render();
         App.ensureArt(deckId, cfg.render);

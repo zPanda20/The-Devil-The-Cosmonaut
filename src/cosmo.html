@@ -124,6 +124,10 @@ h1 { font-family: var(--display); font-weight: 400; font-size: var(--display-siz
 .home-link:hover { color: var(--text); }
 .home-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .result .row { display: flex; gap: 8px; flex-wrap: wrap; }
+/* The result card sits over the finished puzzle. */
+.board-wrap .result { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(90%, 380px); box-sizing: border-box; z-index: 6;
+  border-color: var(--accent); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5); }
+.board-wrap.done .board { filter: saturate(0.6) brightness(0.75); }
 
 @media (max-height: 860px) and (min-width: 600px) {
   .app { gap: 12px; padding-block: 10px 40px; }
@@ -171,9 +175,7 @@ h1 { font-family: var(--display); font-weight: 400; font-size: var(--display-siz
   <section class="play" id="play" hidden>
     <div class="board-wrap">
       <div class="board" id="board" role="grid" aria-label="Puzzle grid"></div>
-    </div>
-    <div class="side" id="side">
-      <section class="result" id="result" hidden aria-live="polite">
+        <section class="result" id="result" hidden aria-live="polite">
         <h2 id="result-title"></h2>
         <p id="result-text"></p>
         <p class="unlock" id="result-unlock" hidden></p>
@@ -182,6 +184,8 @@ h1 { font-family: var(--display); font-weight: 400; font-size: var(--display-siz
           <button type="button" class="btn" id="btn-result-map">Levels</button>
         </div>
       </section>
+    </div>
+    <div class="side" id="side">
       <p class="msg" id="msg" aria-live="polite"></p>
       <div class="row">
         <button type="button" class="btn" id="btn-undo">Undo X</button>

@@ -81,7 +81,15 @@
   // Optional artwork for a deck, replacing the drawn art where present:
   // { faces: { K: { red: url, black: url }, Q: {...}, J: {...} }, suits: { S: url, H: url, C: url, D: url } }
   // Images are drawn with multiply blending, so pure-white paper in the art takes on the card colour.
-  function registerAssets(id, assets) { getStyle(id).assets = shorten(assets); }
+  function registerAssets(id, assets) { var s = getStyle(id), lite = s.assets && s.assets.lite; s.assets = shorten(assets); if (lite && !s.assets.lite) s.assets.lite = lite; }
+  // Lite art: simpler pictures for small cards. Used automatically on compact cards and tokens, or everywhere with setLite.
+  function registerLite(id, assets) { var s = getStyle(id); s.assets = s.assets || {}; s.assets.lite = shorten(assets); }
+  function setLite(id, on) { getStyle(id).liteOn = !!on; }
+  var smallArt = false;   // true while drawing a compact card or token
+  function art(s) {
+    var a = s.assets || {};
+    return a.lite && (s.liteOn || smallArt) ? a.lite : a;
+  }
 
   // In a browser, turn embedded data: images into short blob: links once, so every card redraw stays light.
   function shorten(node) {
@@ -101,14 +109,14 @@
   }
 
   // Light paper art multiplies into the card; art on a black ground (dark decks) uses screen instead.
-  function blendOf(s) { return (s.assets && s.assets.blend) || 'multiply'; }
+  function blendOf(s) { return (art(s).blend) || 'multiply'; }
   function suitArt(s, suit, px, extra) {
-    var url = s.assets && s.assets.suits && s.assets.suits[suit];
+    var A = art(s), url = A.suits && A.suits[suit];
     if (!url) return null;
     return '<img src="' + url + '" alt="" draggable="false" style="display:block;width:' + px + 'px;height:' + px + 'px;mix-blend-mode:' + blendOf(s) + ';' + (extra || '') + '">';
   }
   function faceArt(s, rank, suit) {
-    var f = s.assets && s.assets.faces && s.assets.faces[rank];
+    var A = art(s), f = A.faces && A.faces[rank];
     var url = f && f[SUITS[suit].color];
     if (!url) return null;
     return '<img src="' + url + '" alt="" draggable="false" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;mix-blend-mode:' + blendOf(s) + '">';
@@ -117,11 +125,11 @@
   // so a box of boxW x boxH shows the face rather than the middle of the picture. (cx, cy) is where the head should land;
   // `need` is the area [x0, y0, x1, y1] the image must keep covered.
   function faceArtFocused(s, rank, suit, boxW, boxH, zoom, cx, cy, need) {
-    var f = s.assets && s.assets.faces && s.assets.faces[rank];
+    var A = art(s), f = A.faces && A.faces[rank];
     var url = f && f[SUITS[suit].color];
     if (!url) return null;
-    var fp = (s.assets.focus && s.assets.focus[rank]) || [0.5, 0.3];
-    var w = boxW * Math.max(1, zoom * (s.assets.focusZoom || 1)), h = w * BASE_H / BASE_W;   // focusZoom: decks whose subjects are small
+    var fp = (A.focus && A.focus[rank]) || [0.5, 0.3];
+    var w = boxW * Math.max(1, zoom * (A.focusZoom || 1)), h = w * BASE_H / BASE_W;   // focusZoom: decks whose subjects are small
     var left = cx - fp[0] * w, top = cy - fp[1] * h;
     need = need || [0, 0, boxW, boxH];
     left = Math.min(need[0], Math.max(need[2] - w, left));
@@ -219,6 +227,10 @@
   }
 
   function compactCard(s, card, c, width) {
+    smallArt = true;
+    try { return compactCardInner(s, card, c, width); } finally { smallArt = false; }
+  }
+  function compactCardInner(s, card, c, width) {
     var h = heightFor(width), k = width / BASE_W, b = s.card.border || 0;
     var face = VALUE[card.rank] > 10;
     return '<div class="ce-card ce-compact" style="position:relative;width:' + width + 'px;height:' + h + 'px;flex:none;box-sizing:border-box;overflow:hidden;' +
@@ -267,6 +279,10 @@
 
   // Round token cut from a face card's art (for puzzle markers). rank 'K' | 'Q' | 'J'.
   function renderToken(styleId, rank, suit, size) {
+    smallArt = true;
+    try { return renderTokenInner(styleId, rank, suit, size); } finally { smallArt = false; }
+  }
+  function renderTokenInner(styleId, rank, suit, size) {
     var s = getStyle(styleId);
     var c = colourSet(s, { rank: rank, suit: suit });
     // Token: a 104-unit circle centred at (70, 104) of the 140 x 200 design box; art is zoomed onto the head.
@@ -987,7 +1003,8 @@
 
   root.CardEngine = {
     BASE_W: BASE_W, BASE_H: BASE_H, RANKS: RANKS, VALUE: VALUE, SUITS: SUITS, LAYOUTS: LAYOUTS,
-    registerStyle: registerStyle, registerAssets: registerAssets, getStyle: getStyle, listStyles: listStyles,
+    registerStyle: registerStyle, registerAssets: registerAssets, registerLite: registerLite, setLite: setLite,
+    hasLite: function (id) { var s = getStyle(id); return !!(s.assets && s.assets.lite); }, getStyle: getStyle, listStyles: listStyles,
     renderCard: renderCard, renderBack: renderBack, makeDeck: makeDeck, shuffle: shuffle, loadFonts: loadFonts,
     renderToken: renderToken, regionColours: regionColours,
     cardName: cardName, heightFor: heightFor, peek: peek,

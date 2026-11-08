@@ -29,15 +29,15 @@
     App.applyTheme(deckId);
     $('sub').textContent = CE.getStyle(deckId).name + ' deck · two packs, aces out · 96 cards';
     var picker = $('deck');
-    if (picker && picker.value !== deckId) picker.value = deckId;
+    if (picker) picker.value = App.deckValue(deckId);
   }
 
   function buildDeckPicker() {
     var picker = $('deck');
     App.fillDeckSelect(picker, deckId);
     picker.addEventListener('change', function () {
-      if (!App.setDeck(picker.value)) { picker.value = deckId; return; }
-      deckId = picker.value;
+      if (!App.setDeck(picker.value)) { picker.value = App.deckValue(deckId); return; }
+      deckId = App.getDeck();
       applyTheme();
       message = 'Switched to the ' + CE.getStyle(deckId).name + ' deck.';
       render();

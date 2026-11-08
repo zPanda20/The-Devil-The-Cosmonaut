@@ -81,6 +81,9 @@ h2 { font-family: var(--display); font-weight: 400; font-size: calc(var(--displa
 .card.soon { opacity: 0.55; }
 .soon-tag { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 3px; padding: 4px 8px; align-self: flex-start; }
 .tile2048 { width: 52px; height: 52px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 22px; background: var(--accent); color: var(--accent-text); }
+.lite-toggle { align-self: flex-start; font: inherit; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 3px; padding: 6px 8px; min-height: 30px; cursor: pointer; }
+.lite-toggle.on { color: var(--accent); border-color: var(--accent); }
+.lite-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .shelf-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; }
 .shelf-head p { margin: 0; color: var(--muted); font-size: 12px; }
 .shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 12px; }
@@ -276,7 +279,9 @@ h2 { font-family: var(--display); font-weight: 400; font-size: calc(var(--displa
       return '<div class="tile' + (on ? ' on' : '') + (d.unlocked ? '' : ' locked') + '" role="button" tabindex="0" data-id="' + d.id + '"' +
         (d.unlocked ? ' aria-pressed="' + on + '"' : ' aria-disabled="true"') + ' aria-label="' + d.name + (d.unlocked ? (on ? ', equipped' : ', tap to equip') : ', locked') + '">' +
         '<div class="pair" aria-hidden="true">' + pair + '</div>' +
-        '<div><div class="name">' + d.name + '</div><div class="tag">' + (d.starter && !on ? 'Starter · ' : '') + tag + '</div></div>' + routes + '</div>';
+        '<div><div class="name">' + d.name + '</div><div class="tag">' + (d.starter && !on ? 'Starter · ' : '') + tag + '</div></div>' +
+        (d.unlocked && App.hasLite(d.id) ? '<button type="button" class="lite-toggle' + (App.isLite(d.id) ? ' on' : '') + '" data-lite="' + d.id + '" aria-pressed="' + App.isLite(d.id) + '">' + (App.isLite(d.id) ? 'Lite art on' : 'Lite art off') + '</button>' : '') +
+        routes + '</div>';
     }).join('');
   }
 
@@ -299,8 +304,13 @@ h2 { font-family: var(--display); font-weight: 400; font-size: calc(var(--displa
       var t = document.querySelector('.tile[data-id="' + id + '"]'); if (t) t.focus();
     }
   }
-  $('shelf').addEventListener('click', function (e) { equip(e.target.closest('.tile')); });
+  $('shelf').addEventListener('click', function (e) {
+    var lt = e.target.closest('.lite-toggle');
+    if (lt) { var id = lt.getAttribute('data-lite'); App.setLite(id, !App.isLite(id)); render(); var b = document.querySelector('.lite-toggle[data-lite="' + id + '"]'); if (b) b.focus(); return; }
+    equip(e.target.closest('.tile'));
+  });
   $('shelf').addEventListener('keydown', function (e) {
+    if (e.target.closest('.lite-toggle')) return;
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); equip(e.target.closest('.tile')); }
   });
   render();

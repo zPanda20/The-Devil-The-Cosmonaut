@@ -112,15 +112,33 @@
     if (!d) { var old = load('devils-grip:prefs:v1'); d = old && old.deck; if (d && isUnlocked(d) && hasStyle(d)) store(DECK_KEY, d); }
     return d && isUnlocked(d) && hasStyle(d) ? d : STARTER;
   }
-  function setDeck(id) { if (isUnlocked(id) && hasStyle(id)) { store(DECK_KEY, id); return true; } return false; }
+  // Accepts a deck id or a picker value "id|lite" (the lite flag is remembered per deck).
+  function setDeck(val) {
+    var p = String(val).split('|'), id = p[0];
+    if (!(isUnlocked(id) && hasStyle(id))) return false;
+    store(DECK_KEY, id);
+    if (LITE_DECKS.indexOf(id) >= 0) setLite(id, p[1] === 'lite');
+    return true;
+  }
+
+  /* ---------- lite art: simpler pictures, always used on small cards; optional everywhere ---------- */
+  var LITE_KEY = 'app:lite:v1', LITE_DECKS = ['hellfire-pulp', 'neon-riot'];
+  function liteMap() { return load(LITE_KEY) || {}; }
+  function isLite(id) { return !!liteMap()[id]; }
+  function setLite(id, on) { var m = liteMap(); m[id] = !!on; store(LITE_KEY, m); CE.setLite(id, !!on); }
+  function hasLite(id) { return LITE_DECKS.indexOf(id) >= 0; }
+  function deckValue(id) { id = id || getDeck(); return id + (hasLite(id) && isLite(id) ? '|lite' : ''); }
+  (function () { var m = liteMap(); for (var k in m) if (m[k] && hasStyle(k)) CE.setLite(k, true); })();
   function hasStyle(id) { return CE.listStyles().some(function (s) { return s.id === id; }); }
 
   // Fills a <select> with every deck; locked ones are listed but disabled.
   function fillDeckSelect(sel, current) {
     sel.innerHTML = decks().map(function (d) {
-      return '<option value="' + d.id + '"' + (d.unlocked ? '' : ' disabled') + '>' + d.name + (d.unlocked ? '' : ' · locked') + '</option>';
+      var opt = '<option value="' + d.id + '"' + (d.unlocked ? '' : ' disabled') + '>' + d.name + (d.unlocked ? '' : ' · locked') + '</option>';
+      if (d.unlocked && hasLite(d.id)) opt += '<option value="' + d.id + '|lite">' + d.name + ' · Lite</option>';
+      return opt;
     }).join('');
-    sel.value = current;
+    sel.value = deckValue(String(current || getDeck()).split('|')[0]);
   }
 
   function applyTheme(id) {
@@ -194,7 +212,7 @@
     deckNames: deckNames, unlockMessage: unlockMessage, listText: listText,
     points: points, pointsBy: pointsBy, award: award, pointsLine: pointsLine, GAME_NAMES: GAME_NAMES,
     ensureArt: ensureArt, artLoaded: artLoaded,
-    getDeck: getDeck, setDeck: setDeck, fillDeckSelect: fillDeckSelect, applyTheme: applyTheme,
+    getDeck: getDeck, setDeck: setDeck, deckValue: deckValue, isLite: isLite, setLite: setLite, hasLite: hasLite, fillDeckSelect: fillDeckSelect, applyTheme: applyTheme,
     today: today, prettyDate: prettyDate, shiftDay: shiftDay,
     dailyPick: dailyPick, transformLevel: transformLevel,
     dailyState: dailyState, currentStreak: currentStreak, dailyResult: dailyResult, recordDaily: recordDaily

@@ -45,7 +45,10 @@
   function cur() { return P.daily ? dailyLevel(P.daily) : lvl(P.num); }
   function regionOf(L, i) { return parseInt(L.r.charAt(i), 36); }
   function isSolution(L, i) { if (!L._sol) L._sol = new Set(L.s); return L._sol.has(i); }
-  function unlocked(num) { return num === 1 || !!prog.best[num - 1]; }
+  // Level 1 of every tier is always open, so you can start a harder tier straight away.
+  var TIER_START = {};
+  (function () { var n = 1; PACK.tiers.forEach(function (t) { TIER_START[n] = true; n += t.levels.length; }); })();
+  function unlocked(num) { return !!TIER_START[num] || !!prog.best[num - 1] || !!prog.best[num]; }
   function nextLevel() { for (var n = 1; n <= LEVELS.length; n++) if (!prog.best[n]) return n; return LEVELS.length; }
   function clearedCount() { var c = 0; for (var k in prog.best) if (prog.best[k]) c++; return c; }
   function points(L, lives) { return Math.round(TIER_POINTS[L.tier] * (1 + 0.25 * (lives - 1))); }
@@ -75,15 +78,15 @@
   function applyTheme() {
     App.applyTheme(prefs.deck);
     var picker = $('deck');
-    if (picker && picker.value !== prefs.deck) picker.value = prefs.deck;
+    if (picker) picker.value = App.deckValue(prefs.deck);
   }
 
   function buildDeckPicker() {
     var picker = $('deck');
     App.fillDeckSelect(picker, prefs.deck);
     picker.addEventListener('change', function () {
-      if (!App.setDeck(picker.value)) { picker.value = prefs.deck; return; }
-      prefs.deck = picker.value;
+      if (!App.setDeck(picker.value)) { picker.value = App.deckValue(prefs.deck); return; }
+      prefs.deck = App.getDeck();
       applyTheme();
       message = 'Switched to the ' + CE.getStyle(prefs.deck).name + ' deck.';
       render();
@@ -330,6 +333,7 @@
     var res = $('result');
     if (P.over) {
       res.hidden = false;
+      document.querySelector('.board-wrap').classList.add('done');
       if (P.won) {
         $('result-title').textContent = P.lives === 3 ? 'Flawless landing' : 'Mission complete';
         if (L.daily) {
@@ -356,6 +360,7 @@
       $('result-unlock').hidden = !un;
     } else {
       res.hidden = true;
+      document.querySelector('.board-wrap').classList.remove('done');
     }
     $('btn-undo').disabled = P.over || !P.history.length;
     $('btn-clear').disabled = P.over;
