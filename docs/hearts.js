@@ -143,9 +143,10 @@
   var G = null, sel = [], timer = null, message = '';
 
   function save() { T.store(GAME_KEY, { G: G }); }
+  var anim = K.Animator($('felt')), firstPaint = true, fx = {};   // fx: what the next render should animate
   function newGame() {
     clearTimeout(timer);
-    G = Core.newGame(); Core.startHand(G); sel = [];
+    G = Core.newGame(); Core.startHand(G); sel = []; fx = { dealing: true };
     message = '';
     T.result(null);
     step();
@@ -223,11 +224,16 @@
   function act() {
     if (G.phase === 'pass') {
       if (sel.length !== 3) return;
+      var passed = {}, to = Core.passTarget(G, 0);
+      sel.forEach(function (c) { passed[K.key(c)] = to; });
       Core.setPass(G, 0, sel.slice()); sel = [];
+      var from = [1, 2, 3].filter(function (x) { return Core.passTarget(G, x) === 0; })[0], received = {};
+      G.received.forEach(function (c) { received[K.key(c)] = from; });
+      fx = { passed: passed, received: received };
       message = 'You received ' + G.received.map(K.label).join(', ') + '.';
       return step();
     }
-    if (G.phase === 'handover') { Core.startHand(G); sel = []; message = ''; G.handPts = null; return step(); }
+    if (G.phase === 'handover') { Core.startHand(G); sel = []; message = ''; G.handPts = null; fx = { dealing: true }; return step(); }
   }
 
   function centerText() {
@@ -242,8 +248,13 @@
     return '';
   }
 
+  var deferred = 0, userAction = false;   // taps always redraw at once; automatic redraws wait for motion
   function render() {
     if (!G) return;
+    // Let cards finish moving; the deferred render picks up every change made meanwhile.
+    clearTimeout(deferred);
+    var wait = anim.wait();
+    if (wait > 0 && !userAction) { deferred = setTimeout(render, wait + 15); return; }
     var felt = $('felt'), rm = T.room(felt, 360);
     var w = Math.min(rm.w, 980), h = Math.max(360, Math.min(rm.h, 760));
     var n = G.hands ? G.hands[0].length : 0, Gm = K.geometry(w, h, n), html = '';
@@ -254,9 +265,9 @@
       html += K.badge(s, NAMES[s], G.hands ? G.hands[s].length : 0, G.scores[s] + ' pts' + (taken ? ' · +' + taken + ' this hand' : ''), Gm, G.phase === 'play' && G.turn === s);
     }
     // Trick (or the cards being passed)
-    (G.trick || []).forEach(function (p) {
+    (G.trick || []).forEach(function (p, i) {
       var sp = Gm.spots[p.seat];
-      html += '<div class="tcard" style="left:' + Math.round(sp.x) + 'px;top:' + Math.round(sp.y) + 'px">' + T.card(p.card, Gm.tw) + '</div>';
+      html += '<div class="tcard" data-key="' + K.key(p.card) + '" style="left:' + Math.round(sp.x) + 'px;top:' + Math.round(sp.y) + 'px;z-index:' + (5 + i) + '">' + T.card(p.card, Gm.tw) + '</div>';
     });
     html += '<div class="center-msg" style="top:' + Gm.msgTop + 'px">' + centerText() + '</div>';
     // Your hand
@@ -267,10 +278,14 @@
         var isLegal = G.phase === 'pass' || legal.some(function (x) { return K.same(x, c); });
         var dim = G.phase === 'play' && G.turn === 0 && !isLegal;
         var got = G.received && G.received.some(function (x) { return K.same(x, c); });
-        html += '<button type="button" class="hit' + (isSel ? ' sel' : '') + (dim ? ' dim' : '') + (got ? ' got' : '') + '" data-i="' + i + '" style="left:' + (x0 + i * Gm.step) + 'px;top:' + (Gm.handTop - (isSel ? Gm.lift : 0)) + 'px;width:' + Gm.W + 'px;height:' + Gm.H + 'px;z-index:' + (10 + i) + '" aria-label="' + c.rank + ' of ' + K.SUIT_NAME[c.suit] + '">' + T.card(c, Gm.W) + '</button>';
+        html += '<button type="button" class="hit' + (isSel ? ' sel' : '') + (dim ? ' dim' : '') + (got ? ' got' : '') + '" data-i="' + i + '" data-key="' + K.key(c) + '" style="left:' + (x0 + i * Gm.step) + 'px;top:' + (Gm.handTop - (isSel ? Gm.lift : 0)) + 'px;width:' + Gm.W + 'px;height:' + Gm.H + 'px;z-index:' + (10 + i) + '" aria-label="' + c.rank + ' of ' + K.SUIT_NAME[c.suit] + '">' + T.card(c, Gm.W) + '</button>';
       });
     }
+    anim.before();
     felt.innerHTML = html;
+    if (!firstPaint || fx.dealing) anim.after(K.trickFx(G, fx));   // no motion when a saved game first appears
+    firstPaint = false;
+    fx = {};
 
     var taken0 = G.taken ? G.taken[0].reduce(function (a, c) { return a + pointsOf(c); }, 0) : 0;
     $('hud').innerHTML = NAMES.map(function (nm, s) { return '<span>' + nm + ' <b>' + G.scores[s] + '</b></span>'; }).join('') +
@@ -293,10 +308,11 @@
   }
 
   /* ---------- events ---------- */
-  $('felt').addEventListener('click', function (e) {
+  $('felt').addEventListener('click', function (e) { userAction = true; try { feltClick(e); } finally { userAction = false; } });
+  function feltClick(e) {
     var b = e.target.closest('.hit'); if (!b) return;
     tapCard(+b.getAttribute('data-i'));
-  });
+  }
   $('btn-act').addEventListener('click', act);
   var confirmNew = 0;
   $('btn-new').addEventListener('click', function () {

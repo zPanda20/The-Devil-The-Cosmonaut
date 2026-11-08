@@ -156,9 +156,10 @@
   var G = null, sel = null, timer = null, message = '';
 
   function save() { T.store(GAME_KEY, { G: G }); }
+  var anim = K.Animator($('felt')), firstPaint = true, fx = {};   // fx: what the next render should animate
   function newGame() {
     clearTimeout(timer);
-    G = Core.newGame(); Core.startHand(G); sel = null; message = '';
+    G = Core.newGame(); Core.startHand(G); sel = null; message = ''; fx = { dealing: true };
     T.result(null);
     step();
   }
@@ -218,16 +219,21 @@
   function sign(n) { return (n > 0 ? '+' : '') + n; }
   function bidText(s) { var b = G.bids[s]; return b == null ? '' : (b === 0 ? 'Nil' : 'Bid ' + b) + (G.phase !== 'bid' ? ' · won ' + G.tricks[s] : ''); }
 
+  var deferred = 0, userAction = false;   // taps always redraw at once; automatic redraws wait for motion
   function render() {
     if (!G) return;
+    // Let cards finish moving; the deferred render picks up every change made meanwhile.
+    clearTimeout(deferred);
+    var wait = anim.wait();
+    if (wait > 0 && !userAction) { deferred = setTimeout(render, wait + 15); return; }
     var felt = $('felt'), rm = T.room(felt, 360);
     var w = Math.min(rm.w, 980), h = Math.max(380, Math.min(rm.h, 760));
     var n = G.hands[0].length, Gm = K.geometry(w, h, n), html = '';
     felt.style.width = w + 'px'; felt.style.height = h + 'px';
     for (var s = 1; s < 4; s++) html += K.badge(s, NAMES[s] + (s === 2 ? ' · partner' : ''), G.hands[s].length, bidText(s), Gm, (G.phase === 'play' || G.phase === 'bid') && G.turn === s);
-    G.trick.forEach(function (p) {
+    G.trick.forEach(function (p, i) {
       var sp = Gm.spots[p.seat];
-      html += '<div class="tcard" style="left:' + sp.x + 'px;top:' + sp.y + 'px">' + T.card(p.card, Gm.tw) + '</div>';
+      html += '<div class="tcard" data-key="' + K.key(p.card) + '" style="left:' + sp.x + 'px;top:' + sp.y + 'px;z-index:' + (5 + i) + '">' + T.card(p.card, Gm.tw) + '</div>';
     });
     html += '<div class="center-msg" style="top:' + Gm.msgTop + 'px">' + centerText() + (G.bids[0] != null ? '<br>' + bidText(0) : '') + '</div>';
     if (G.phase === 'bid' && G.turn === 0) {
@@ -240,9 +246,13 @@
     hand.forEach(function (c, i) {
       var isSel = sel && K.same(sel, c), isLegal = legal.some(function (x) { return K.same(x, c); });
       var dim = G.phase === 'play' && G.turn === 0 && !isLegal;
-      html += '<button type="button" class="hit' + (isSel ? ' sel' : '') + (dim ? ' dim' : '') + '" data-i="' + i + '" style="left:' + (x0 + i * Gm.step) + 'px;top:' + (Gm.handTop - (isSel ? Gm.lift : 0)) + 'px;width:' + Gm.W + 'px;height:' + Gm.H + 'px;z-index:' + (10 + i) + '" aria-label="' + c.rank + ' of ' + K.SUIT_NAME[c.suit] + '">' + T.card(c, Gm.W) + '</button>';
+      html += '<button type="button" class="hit' + (isSel ? ' sel' : '') + (dim ? ' dim' : '') + '" data-i="' + i + '" data-key="' + K.key(c) + '" style="left:' + (x0 + i * Gm.step) + 'px;top:' + (Gm.handTop - (isSel ? Gm.lift : 0)) + 'px;width:' + Gm.W + 'px;height:' + Gm.H + 'px;z-index:' + (10 + i) + '" aria-label="' + c.rank + ' of ' + K.SUIT_NAME[c.suit] + '">' + T.card(c, Gm.W) + '</button>';
     });
+    anim.before();
     felt.innerHTML = html;
+    if (!firstPaint || fx.dealing) anim.after(K.trickFx(G, fx));   // no motion when a saved game first appears
+    firstPaint = false;
+    fx = {};
 
     $('hud').innerHTML = [0, 1].map(function (t) { return '<span>' + TEAM_NAME[t] + ' <b>' + G.scores[t] + '</b> · bags ' + G.bags[t] + (G.phase !== 'bid' ? ' · contract ' + teamLine(t) : '') + '</span>'; }).join('') +
       '<span>Hand <b>' + G.handNo + '</b></span>' + (G.broken ? '<span>Spades broken</span>' : '');
@@ -260,12 +270,13 @@
     save();
   }
 
-  $('felt').addEventListener('click', function (e) {
+  $('felt').addEventListener('click', function (e) { userAction = true; try { feltClick(e); } finally { userAction = false; } });
+  function feltClick(e) {
     var bb = e.target.closest('[data-bid]');
     if (bb) { if (G.phase === 'bid' && G.turn === 0) { Core.bid(G, 0, +bb.getAttribute('data-bid')); message = ''; step(); } return; }
     var b = e.target.closest('.hit'); if (b) tapCard(+b.getAttribute('data-i'));
-  });
-  $('btn-act').addEventListener('click', function () { if (G.phase === 'handover') { Core.startHand(G); sel = null; message = ''; step(); } });
+  }
+  $('btn-act').addEventListener('click', function () { if (G.phase === 'handover') { Core.startHand(G); sel = null; message = ''; fx = { dealing: true }; step(); } });
   var confirmNew = 0;
   $('btn-new').addEventListener('click', function () {
     if (G && G.phase !== 'over' && (G.handNo > 1 || G.trickNo > 0) && Date.now() - confirmNew > 2500) {

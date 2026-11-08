@@ -59,13 +59,112 @@
     if (seat === 2) pos = 'left:' + Math.round(G.cx - Math.max(bwTotal, 120) / 2) + 'px;top:0;align-items:center';
     else if (seat === 1) pos = 'left:0;top:' + Math.round(G.cy - bh / 2 - 26) + 'px;align-items:flex-start';
     else pos = 'right:0;top:' + Math.round(G.cy - bh / 2 - 26) + 'px;align-items:flex-end';
-    return '<div class="seat' + (active ? ' active' : '') + '" style="' + pos + '">' +
+    return '<div class="seat' + (active ? ' active' : '') + '" data-seat="' + seat + '" style="' + pos + '">' +
       '<div class="seat-name">' + name + '</div>' +
-      '<div style="position:relative;width:' + bwTotal + 'px;height:' + bh + 'px">' + backs + '</div>' +
+      '<div class="seat-cards" style="position:relative;width:' + bwTotal + 'px;height:' + bh + 'px">' + backs + '</div>' +
       '<div class="seat-status">' + (status || '') + '</div></div>';
   }
 
+  /* ---------- card motion ----------
+   * FLIP animation across re-renders. Every card element carries data-key (its rank+suit).
+   *   before(): remember where each keyed card is.
+   *   after(fx): cards that moved slide from their old spot; new cards fly in from fx.from(key) (a seat);
+   *              cards that vanished leave as ghosts toward fx.to(key). fx.delay(key, i) staggers. */
+  function Animator(felt) {
+    var prev = {}, ghosts = {}, busyUntil = 0;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function rel(el) { var r = el.getBoundingClientRect(), f = felt.getBoundingClientRect(); return { x: r.left - f.left, y: r.top - f.top, w: r.width, h: r.height }; }
+    function seatRect(seat) {
+      if (seat === 0) { var f = felt.getBoundingClientRect(); return { x: f.width / 2 - 30, y: f.height - 20, w: 60, h: 84 }; }
+      if (seat === 'deck') { var g = felt.getBoundingClientRect(); return { x: g.width / 2 - 20, y: g.height / 2 - 28, w: 40, h: 56 }; }
+      var el = felt.querySelector('.seat[data-seat="' + seat + '"] .seat-cards') || felt.querySelector('.seat[data-seat="' + seat + '"]');
+      return el ? rel(el) : null;
+    }
+    function animate(el, from, to, ms, delay, fade, done) {
+      busyUntil = Math.max(busyUntil, Date.now() + ms + delay);
+      var sx = from.w / to.w;
+      el.style.transition = 'none';
+      el.style.transform = 'translate(' + (from.x - to.x) + 'px,' + (from.y - to.y) + 'px) scale(' + sx + ')';
+      el.style.transformOrigin = '0 0';
+      if (fade === 'in') el.style.opacity = '0.2';
+      var oz = el.style.zIndex;
+      el.style.zIndex = String(400 + (parseInt(oz, 10) || 0));
+      void el.offsetWidth;
+      el.style.transition = 'transform ' + ms + 'ms cubic-bezier(.2,.75,.25,1) ' + delay + 'ms, opacity ' + ms + 'ms ease ' + delay + 'ms';
+      el.style.transform = '';
+      el.style.opacity = '';
+      setTimeout(function () { el.style.transition = ''; el.style.transformOrigin = ''; el.style.zIndex = oz; if (done) done(); }, ms + delay + 30);
+    }
+    return {
+      // Milliseconds until the current motion ends. A re-render before then would cut it short.
+      wait: function () { return Math.max(0, busyUntil - Date.now()); },
+      before: function () {
+        prev = {}; ghosts = {};
+        if (reduce) return;
+        Array.prototype.forEach.call(felt.querySelectorAll('[data-key]'), function (el) {
+          var k = el.getAttribute('data-key');
+          prev[k] = rel(el);
+          ghosts[k] = el.outerHTML;
+        });
+      },
+      after: function (fx) {
+        if (reduce) return;
+        fx = fx || {};
+        var seen = {}, n = 0;
+        Array.prototype.forEach.call(felt.querySelectorAll('[data-key]'), function (el) {
+          var k = el.getAttribute('data-key'), to = rel(el), from = prev[k];
+          seen[k] = true;
+          var delay = fx.delay ? fx.delay(k, n) : 0;
+          if (from) {
+            if (Math.abs(from.x - to.x) > 1 || Math.abs(from.y - to.y) > 1 || Math.abs(from.w - to.w) > 1) animate(el, from, to, 300, delay);
+          } else {
+            var src = fx.from ? fx.from(k) : null, r = src != null ? seatRect(src) : null;
+            if (r) animate(el, { x: r.x + r.w / 2 - to.w * 0.25, y: r.y + r.h / 2 - to.h * 0.25, w: to.w * 0.5 }, to, 360, delay, 'in');
+          }
+          n++;
+        });
+        // Cards that left the table glide toward fx.to(key) and fade.
+        Object.keys(prev).forEach(function (k) {
+          if (seen[k] || !fx.to) return;
+          var dest = fx.to(k), r = dest != null ? seatRect(dest) : null;
+          if (!r) return;
+          var box = document.createElement('div'); box.innerHTML = ghosts[k];
+          var gh = box.firstChild; gh.removeAttribute('data-key'); gh.style.pointerEvents = 'none';
+          var p = prev[k];
+          gh.style.left = p.x + 'px'; gh.style.top = p.y + 'px'; gh.style.transform = ''; gh.classList.remove('sel');
+          felt.appendChild(gh);
+          void gh.offsetWidth;
+          gh.style.transition = 'transform 380ms cubic-bezier(.4,0,.6,1), opacity 380ms ease';
+          gh.style.transformOrigin = '0 0';
+          gh.style.transform = 'translate(' + (r.x + r.w / 2 - p.x - p.w * 0.2) + 'px,' + (r.y + r.h / 2 - p.y - p.h * 0.2) + 'px) scale(0.4)';
+          gh.style.opacity = '0';
+          setTimeout(function () { if (gh.parentNode) gh.parentNode.removeChild(gh); }, 420);
+        });
+      }
+    };
+  }
+  function key(c) { return c.rank + c.suit; }
+  // Standard motion for a trick table: new trick cards come from the player who played them, received cards from
+  // whoever passed them, freshly dealt cards from the middle; collected cards go to the trick winner.
+  function trickFx(G, opts) {
+    opts = opts || {};
+    var trickSeat = {};
+    (G.trick || []).forEach(function (p) { trickSeat[key(p.card)] = p.seat; });
+    var won = {};
+    if (G.lastTrick) G.lastTrick.plays.forEach(function (p) { won[key(p.card)] = G.lastTrick.winner; });
+    return {
+      from: function (k) {
+        if (k in trickSeat) return trickSeat[k];
+        if (opts.received && opts.received[k] != null) return opts.received[k];
+        return opts.dealing ? 'deck' : null;
+      },
+      to: function (k) { if (opts.passed && opts.passed[k] != null) return opts.passed[k]; return k in won ? won[k] : null; },
+      delay: function (k, i) { return opts.dealing && !(k in trickSeat) ? i * 40 : 0; }
+    };
+  }
+
   window.Tricks = {
+    Animator: Animator, key: key, trickFx: trickFx,
     rankV: rankV, sortHand: sortHand, dealHands: dealHands, same: same, has: has, without: without, ofSuit: ofSuit,
     trickWinner: trickWinner, label: label, SYM: SYM, SUIT_NAME: SUIT_NAME, geometry: geometry, badge: badge
   };
